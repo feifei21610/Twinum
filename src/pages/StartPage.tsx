@@ -7,6 +7,7 @@
  *   - 主 CTA 按钮"开始游戏"
  *   - 底部链接：规则说明 / GitHub / 关于
  */
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Play, BookOpen, Github } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
@@ -25,6 +26,7 @@ export function StartPage(): JSX.Element {
   const goto = useGameStore((s) => s.goto);
   const savedGame = useGameStore((s) => s.game);
   const hasSavedGame = savedGame !== null && savedGame.phase !== 'gameEnd';
+  const [playerCount, setPlayerCount] = useState<4 | 5>(4);
 
   return (
     <div className="flex min-h-screen w-full max-w-app flex-col items-center justify-between gap-6 bg-gradient-dark px-6 py-10">
@@ -92,12 +94,33 @@ export function StartPage(): JSX.Element {
           </motion.button>
         )}
 
+        {/* 人数选择 */}
+        <div className="flex w-full items-center gap-3">
+          <span className="shrink-0 text-xs text-ink-400">人数</span>
+          <div className="flex flex-1 gap-2">
+            {([4, 5] as const).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPlayerCount(n)}
+                className={`flex-1 rounded-xl border py-2 text-sm font-semibold transition-colors ${
+                  playerCount === n
+                    ? 'border-neon-500/60 bg-neon-500/15 text-neon-300'
+                    : 'border-white/10 bg-white/5 text-ink-400 hover:text-ink-200'
+                }`}
+              >
+                {n} 人
+              </button>
+            ))}
+          </div>
+        </div>
+
         <motion.button
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
           type="button"
-          onClick={() => startGame()}
+          onClick={() => startGame({ playerCount })}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-neon py-4 text-base font-bold text-white shadow-neon-primary transition-transform active:scale-95 hover:brightness-110"
         >
           <Play className="h-5 w-5 fill-current" />

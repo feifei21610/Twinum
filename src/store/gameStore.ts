@@ -48,7 +48,7 @@ export interface GameStoreActions {
 
   // ========== 游戏流程 ==========
   /** 开始新游戏（若有 seed 可复现） */
-  startGame: (opts?: { seed?: string; botConfigs?: BotConfigKey[] }) => void;
+  startGame: (opts?: { seed?: string; botConfigs?: BotConfigKey[]; playerCount?: number }) => void;
   /** 上一局结束后的"再来一局"：完全重开 */
   restartGame: () => void;
   /** 手动进入下一轮（回合结束后） */
@@ -88,10 +88,12 @@ export const useGameStore = create<GameStore>()(
       goto: (route) => set({ route }),
 
       startGame: (opts = {}) => {
-        // MVP 4 人局：1 人类 + 3 Bot；所有 Bot 决策逻辑相同，传 'STEADY'/'RUSH' 仅是 BotConfigKey 分组，暂不影响决策
+        const playerCount = opts.playerCount ?? 4;
+        const botCount = playerCount - 1; // P0 是人类
         const { state } = startNewGame({
           seed: opts.seed,
-          botConfigs: opts.botConfigs ?? ['STEADY', 'STEADY', 'STEADY'],
+          playerCount,
+          botConfigs: opts.botConfigs ?? (Array(botCount).fill('STEADY') as BotConfigKey[]),
         });
         set({
           game: state,
