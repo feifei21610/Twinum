@@ -67,11 +67,14 @@ This project is an unofficial, non-commercial fan-made implementation for person
 
 ## 🚀 部署说明
 
-本项目通过 **GitHub Actions** 自动部署到 **GitHub Pages**：
+**日常改代码 → 自动发布** 完整操作手册见 [DEPLOY.md](./DEPLOY.md)。
+
+核心工作流：
 
 - 推送任何提交到 `main` 分支 → `.github/workflows/deploy.yml` 自动触发
 - 流程：checkout → 安装依赖 → 跑单测 → 构建 → 上传 artifact → 发布到 Pages
 - 在线地址：https://feifei21610.github.io/Twinum/
+- 部署进度：https://github.com/feifei21610/Twinum/actions
 
 **首次启用 Pages**（仓库所有者需要做一次）：
 1. GitHub 仓库 → Settings → Pages
