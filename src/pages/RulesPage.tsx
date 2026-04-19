@@ -1,44 +1,176 @@
 /**
- * RulesPage —— 规则说明页（MVP 占位版）
- *
- * 完整六段图文规则放到 Todo 6 pages-assembly 实现。
- * 当前用文字列表快速传达核心规则。
+ * RulesPage —— 规则说明页
  */
-import { ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { Card } from '../components/Card';
+import type { Card as CardType } from '../types/game';
 
-const sections = [
+// ── 数据 ──────────────────────────────────────────────────────
+
+const rule1Groups: { cards: CardType[] }[] = [
   {
-    title: '🎯 目标',
-    content:
-      '4 人局打 4 轮，每轮结束结算：已收集翻面牌数 + Scout Chip 数 − 剩余手牌数。总分最高者获胜。',
+    cards: [
+      { id: 'r1-1', top: 1, bottom: 8, flipped: false },
+      { id: 'r1-2', top: 2, bottom: 7, flipped: false },
+      { id: 'r1-3', top: 3, bottom: 6, flipped: false },
+    ],
   },
   {
-    title: '🃏 出牌（Show）',
-    content:
-      '出一组"同数字"或"连续数字"的相邻手牌。牌组越长越强；同长度下"相同组 > 连续组"；类型相同时最小数字大者胜。第一家随意出；后续必须能盖过场上牌组才能出。',
+    cards: [
+      { id: 'r2-1', top: 4, bottom: 5, flipped: false },
+      { id: 'r2-2', top: 4, bottom: 3, flipped: false },
+    ],
   },
   {
-    title: '🔍 Scout 抽牌',
-    content:
-      '如果你不想/不能出牌，可以从场上牌组的左端或右端抽一张，可选翻面，插入到你手牌的任意位置。那张牌的原主人会得到 1 个 Scout Chip（每个 1 分）。',
+    cards: [
+      { id: 'r3-1', top: 5, bottom: 4, flipped: false },
+      { id: 'r3-2', top: 6, bottom: 3, flipped: false },
+    ],
   },
   {
-    title: '⚡ Scout & Show',
-    content:
-      '特殊动作：先 Scout 一张再立即出牌。每人每局只能用 1 次。打出后 Chip 消失，无法复用。',
-  },
-  {
-    title: '🔁 整副翻转',
-    content:
-      '在一轮开始、你尚未做任何动作前，可以把整副手牌翻面（所有牌的正反面互换）。每轮只能用一次。',
-  },
-  {
-    title: '🏁 回合结束',
-    content:
-      '两种触发：① 有人出完所有手牌 ② 有人 Show 后，其他所有玩家都只 Scout 不 Show，轮回到 Show 者。第 ② 种的 Show 者免扣剩余手牌分。',
+    cards: [{ id: 'r4-1', top: 7, bottom: 2, flipped: false }],
   },
 ];
+
+const rule2Actions = [
+  {
+    label: 'Show',
+    desc: '出一组相邻手牌（同数字或连续数字），必须能盖过场上当前牌组才能出。第一家随意出。',
+  },
+  {
+    label: 'Scout',
+    desc: '从场上牌组左端或右端抽一张，可选翻面，插入手牌任意位置。原主人得 1 分。',
+  },
+  {
+    label: 'S&S',
+    desc: '先 Scout 一张再立即出牌。每人每轮仅限 1 次，用完置灰。',
+  },
+];
+
+// ── 快速规则卡 ────────────────────────────────────────────────
+
+function QuickRulesCard(): JSX.Element {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="glass overflow-hidden rounded-2xl border border-white/10">
+      {/* 标题行 */}
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="quick-rules-panel"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left"
+      >
+        <span className="flex-1 text-sm font-bold text-ink-50">⚡ 快速规则</span>
+        <span className="text-[11px] text-ink-400">30 秒看懂核心玩法</span>
+        <motion.span
+          animate={{ rotate: expanded ? 0 : -180 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="ml-1 text-ink-400"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </motion.span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            id="quick-rules-panel"
+            key="quick-rules-content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-5 border-t border-white/5 px-4 pb-5 pt-4">
+
+              {/* 目标 */}
+              <div>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🎯 目标
+                </p>
+                <p className="text-xs leading-relaxed text-ink-300">
+                  4 人局打 4 轮，每轮结算：credits（收集翻面牌数 + Scout 分）−
+                  剩余手牌数。总分最高者获胜。
+                </p>
+              </div>
+
+              {/* RULE 1 牌组强度 */}
+              <div>
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🃏 牌组强度
+                </p>
+                <div className="flex items-center justify-center gap-1.5 overflow-x-auto pb-1">
+                  {rule1Groups.map((grp, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <div className="flex items-end gap-0.5">
+                        {grp.cards.map((c) => (
+                          <Card key={c.id} card={c} size="xs" disabled />
+                        ))}
+                      </div>
+                      {i < rule1Groups.length - 1 && (
+                        <span className="shrink-0 text-sm font-bold text-ink-300">›</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-center text-[10px] text-ink-400">
+                  长组 › 短组 · 相同 › 连续 · 最小值大者胜
+                </p>
+              </div>
+
+              {/* RULE 2 每回合动作 */}
+              <div>
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🔀 每回合三选一
+                </p>
+                <div className="space-y-2.5">
+                  {rule2Actions.map(({ label, desc }) => (
+                    <div key={label} className="flex gap-2.5">
+                      <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
+                        {label}
+                      </span>
+                      <span className="text-xs leading-relaxed text-ink-300">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 整副翻转 */}
+              <div>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🔁 整副翻转
+                </p>
+                <p className="text-xs leading-relaxed text-ink-300">
+                  每轮开始、尚未行动前，可将整副手牌翻面（正反互换）。每轮限用一次。
+                </p>
+              </div>
+
+              {/* 回合结束 */}
+              <div>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🏁 回合结束
+                </p>
+                <p className="text-xs leading-relaxed text-ink-300">
+                  ① 有人出完所有手牌；或 ② Show 后其余玩家均只 Scout 轮回到 Show 者。
+                  第 ② 种情况的 Show 者免扣剩余手牌分。
+                </p>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── 页面主体 ──────────────────────────────────────────────────
 
 export function RulesPagePlaceholder(): JSX.Element {
   const goto = useGameStore((s) => s.goto);
@@ -58,18 +190,9 @@ export function RulesPagePlaceholder(): JSX.Element {
         <h1 className="text-sm font-bold text-ink-50">规则说明</h1>
       </div>
 
-      {/* 规则列表 */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-5">
-        {sections.map((s) => (
-          <div key={s.title} className="glass rounded-xl p-4">
-            <h2 className="mb-1.5 text-sm font-bold text-ink-50">{s.title}</h2>
-            <p className="text-xs leading-relaxed text-ink-300">{s.content}</p>
-          </div>
-        ))}
-
-        <p className="px-2 pt-2 text-center text-[10px] text-ink-400/60">
-          完整规则图文版将在后续版本补充
-        </p>
+      {/* 内容区 */}
+      <div className="flex-1 overflow-y-auto px-4 py-5">
+        <QuickRulesCard />
       </div>
 
       {/* 底部确认按钮 */}
