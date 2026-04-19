@@ -12,7 +12,7 @@
  * 紧凑设计：每个对手 block 宽度 ~33%，不占太多空间（核心画面留给 Board 和 Hand）
  */
 import { motion } from 'framer-motion';
-import { Coins, Zap } from 'lucide-react';
+import { Coins, Zap, Layers } from 'lucide-react';
 import type { Player } from '../types/game';
 import { BotThinking } from './BotThinking';
 import { cn } from '../utils/cn';
@@ -47,10 +47,6 @@ function OpponentCard({
   botThinking: boolean;
 }): JSX.Element {
   const handCount = player.hand.length;
-  // 展示最多 5 张迷你卡背，超出用 +N 表示
-  const displayMiniCount = Math.min(handCount, 5);
-  const extraCount = Math.max(0, handCount - 5);
-
   const gradient = avatarColorMap[player.avatarColor] ?? avatarColorMap.info;
 
   return (
@@ -109,40 +105,58 @@ function OpponentCard({
         </div>
       </div>
 
-      {/* 手牌张数（迷你卡背） */}
-      <div className="flex items-end gap-0.5">
-        {Array.from({ length: displayMiniCount }).map((_, i) => (
-          <div
-            key={i}
-            className="h-3 w-2 rounded-sm bg-gradient-to-b from-surface-600 to-surface-700"
-          />
-        ))}
-        <span className="ml-1 text-[10px] font-medium text-ink-300">
-          {handCount}
-          {extraCount > 0 ? '' : ''}
-        </span>
-      </div>
-
-      {/* Chips 行 */}
-      <div className="flex items-center gap-2 text-[10px] text-ink-300">
-        <span className="flex items-center gap-0.5" title="Scout Chip">
-          <Coins className="h-3 w-3 text-warning" />
-          {player.scoutChips}
-        </span>
-        <span
-          className={cn(
-            'flex items-center gap-0.5',
-            player.scoutShowChipUsed && 'opacity-30',
-          )}
-          title="Scout & Show Chip"
+      {/* 三行信息（带中文标签，一眼能懂） */}
+      <div className="flex w-full flex-col gap-0.5 px-1 text-[10px] leading-tight">
+        {/* 手牌 */}
+        <div
+          className="flex items-center justify-between text-ink-300"
+          title="剩余手牌数"
         >
-          <Zap
+          <span className="flex items-center gap-1">
+            <Layers className="h-3 w-3 text-info" />
+            手牌
+          </span>
+          <span className="font-semibold text-ink-100">{handCount}</span>
+        </div>
+
+        {/* Scout 代币（每个计 1 分） */}
+        <div
+          className="flex items-center justify-between text-ink-300"
+          title="Scout 代币 · 每个计 1 分"
+        >
+          <span className="flex items-center gap-1">
+            <Coins className="h-3 w-3 text-warning" />
+            代币
+          </span>
+          <span className="font-semibold text-ink-100">{player.scoutChips}</span>
+        </div>
+
+        {/* Scout & Show 特权 */}
+        <div
+          className={cn(
+            'flex items-center justify-between',
+            player.scoutShowChipUsed ? 'text-ink-500' : 'text-ink-300',
+          )}
+          title="Scout & Show 特权 · 每轮限用 1 次"
+        >
+          <span className="flex items-center gap-1">
+            <Zap
+              className={cn(
+                'h-3 w-3',
+                player.scoutShowChipUsed ? 'text-ink-500' : 'text-neon-400',
+              )}
+            />
+            特权
+          </span>
+          <span
             className={cn(
-              'h-3 w-3',
-              player.scoutShowChipUsed ? 'text-ink-400' : 'text-neon-400',
+              'font-semibold',
+              player.scoutShowChipUsed ? 'text-ink-500' : 'text-neon-300',
             )}
-          />
-        </span>
+          >
+            {player.scoutShowChipUsed ? '已用' : '可用'}
+          </span>
+        </div>
       </div>
     </motion.div>
   );
