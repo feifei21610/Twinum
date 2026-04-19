@@ -7,9 +7,9 @@ export default defineConfig(({ mode }) => {
   const isProd = mode === 'production';
   return {
     plugins: [react()],
-    // GitHub Pages 部署在 https://feifei21610.github.io/twinum/ 下，所有资源需要 /twinum/ 前缀
-    // 本地 dev 不需要前缀；只有生产构建才加
-    base: isProd ? '/twinum/' : '/',
+    // GitHub Pages 部署在 https://feifei21610.github.io/Twinum/ 下（注意仓库名首字母大写），
+    // 所有资源需要 /Twinum/ 前缀。本地 dev 不需要前缀；只有生产构建才加。
+    base: isProd ? '/Twinum/' : '/',
     server: {
       host: '0.0.0.0',
       allowedHosts: true,

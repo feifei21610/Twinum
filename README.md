@@ -2,7 +2,7 @@
 
 > 一款极简双面数字卡牌对战网页游戏 · 4 人局（1 人 + 3 个 AI 队友） · 致敬 Oink Games《SCOUT!》· 个人学习作品
 >
-> 🎮 在线试玩：https://feifei21610.github.io/twinum/ · 📖 [玩法规则](../scout/docs/03-game-rules.md) · ❤️ 强烈推荐购买[原版桌游](https://oinkgames.com/en/games/analog/scout/)
+> 🎮 在线试玩：https://feifei21610.github.io/Twinum/ · 📖 [玩法规则](../scout/docs/03-game-rules.md) · ❤️ 强烈推荐购买[原版桌游](https://oinkgames.com/en/games/analog/scout/)
 
 ---
 
@@ -71,14 +71,14 @@ This project is an unofficial, non-commercial fan-made implementation for person
 
 - 推送任何提交到 `main` 分支 → `.github/workflows/deploy.yml` 自动触发
 - 流程：checkout → 安装依赖 → 跑单测 → 构建 → 上传 artifact → 发布到 Pages
-- 在线地址：https://feifei21610.github.io/twinum/
+- 在线地址：https://feifei21610.github.io/Twinum/
 
 **首次启用 Pages**（仓库所有者需要做一次）：
 1. GitHub 仓库 → Settings → Pages
 2. Source 选择 **GitHub Actions**
 3. 下次推 main 自动生效
 
-> 💡 `vite.config.ts` 已配置 `base: '/twinum/'`（仅生产构建生效），所以部署在子路径下不会资源 404。
+> 💡 `vite.config.ts` 已配置 `base: '/Twinum/'`（仅生产构建生效，注意仓库名首字母大写），所以部署在子路径下不会资源 404。
 
 ## 📄 License
 
