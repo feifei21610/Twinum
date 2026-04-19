@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局基础样式 */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+  }
+
+  body {
+    @apply bg-surface-900 text-ink-50 antialiased;
+    font-family: 'Poppins', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  #root {
+    @apply flex flex-col items-center;
+    /* 移动端竖屏优先，桌面端自动居中 */
+    max-width: 100%;
+    min-height: 100vh;
+    /* iOS safe-area */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* 禁止长按弹出系统菜单，但保留文本选择能力 */
+  img,
+  button {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+@layer utilities {
+  /* 玻璃态（深色模式用） */
+  .glass {
+    @apply bg-surface-800/60 backdrop-blur-md border border-white/5;
+  }
+  .glass-strong {
+    @apply bg-surface-800/80 backdrop-blur-lg border border-white/10;
+  }
+
+  /* 文字渐变（Logo、标题用） */
+  .text-gradient-neon {
+    @apply bg-gradient-neon bg-clip-text text-transparent;
+  }
+
+  /* 隐藏滚动条（保留滚动能力） */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
