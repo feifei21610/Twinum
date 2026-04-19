@@ -3,7 +3,7 @@
  *
  * 视觉规格（对齐 scout/docs/05-visual-style.md）：
  *   - 玻璃磨砂底 + 霓虹边缘
- *   - 当前朝上数字是大字主视觉；另一面的数字作为次要角标（倒 180° 显示于底部）
+ *   - 当前朝上数字是大字主视觉；另一面的数字作为次要角标（右上角正向小字）
  *   - 未翻转（top 朝上）= 青色系 / 已翻转（bottom 朝上）= 琥珀色系
  *
  * 尺寸：默认 w-14 h-20（小），调用方可用 size prop 覆盖
@@ -106,10 +106,10 @@ export function Card({
       {/* 主数字（居中大字） */}
       <span className="drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">{face}</span>
 
-      {/* 另一面数字（右上角小字，180° 倒转模拟实体卡背面） */}
+      {/* 另一面数字（右上角小字） */}
       <span
         className={cn(
-          'absolute right-1 top-1 rotate-180 font-semibold opacity-60',
+          'absolute right-1 top-1 font-semibold opacity-60',
           subNumberSize[size],
         )}
       >

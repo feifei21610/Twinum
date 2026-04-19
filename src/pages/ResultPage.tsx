@@ -92,7 +92,7 @@ export function ResultPagePlaceholder(): JSX.Element {
                     {isMe && <span className="ml-1 text-[10px] text-accent-500">（你）</span>}
                   </span>
                   <span className="text-[11px] text-ink-400">
-                    收集 {p.collectedCards.length} · Chip {p.scoutChips}
+                    credits {p.collectedCards.length + p.scoutChips}
                   </span>
                 </div>
               </div>

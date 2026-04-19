@@ -30,6 +30,8 @@ export interface HandAreaProps {
   onToggleCard: (index: number) => void;
   /** Scout 插入模式：传入时，手牌点击被禁用，改为显示插槽 */
   insertSlotMode?: InsertSlotMode;
+  /** S&S 中间态：刚 Scout 抓到的牌在手牌里的 index，高亮 + "新"角标 */
+  highlightIndex?: number;
   className?: string;
 }
 
@@ -39,21 +41,26 @@ export function HandArea({
   disabled = false,
   onToggleCard,
   insertSlotMode,
+  highlightIndex,
   className,
 }: HandAreaProps): JSX.Element {
   const selectedSet = new Set(selectedIndexes);
   const isInsertMode = insertSlotMode != null;
+  // S&S 中间态：卡片可点击（用户需要勾选新牌），但不显示插槽
   const cardsDisabled = disabled || isInsertMode;
 
   return (
-    <div
+    <motion.div
+      animate={{ minHeight: isInsertMode ? 140 : 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       className={cn(
         'w-full overflow-x-auto scrollbar-hide',
-        'px-3 pb-3 pt-6',
+        'px-3 pb-3',
+        isInsertMode ? 'pt-4' : 'pt-6',
         className,
       )}
     >
-      <div className="flex min-w-min items-end gap-1.5">
+      <div className={cn('flex min-w-min gap-1.5', isInsertMode ? 'items-center' : 'items-end')}>
         {/* 最左端插槽（insertAt=0） */}
         {isInsertMode && (
           <InsertSlot
@@ -65,6 +72,7 @@ export function HandArea({
 
         {hand.map((card, index) => {
           const isSelected = selectedSet.has(index);
+          const isNew = highlightIndex === index;
           return (
             <div key={card.id} className="flex items-end gap-1.5">
               <div
@@ -74,10 +82,26 @@ export function HandArea({
                   isInsertMode && 'opacity-80',
                 )}
               >
-                {/* Index 小角标（仅在未选中 + 非插入模式时显示） */}
-                {!isSelected && !isInsertMode && (
+                {/* Index 小角标（仅在未选中 + 非插入模式 + 非新牌时显示） */}
+                {!isSelected && !isInsertMode && !isNew && (
                   <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-medium text-ink-400/60">
                     {index}
+                  </span>
+                )}
+
+                {/* 新牌 neon 脉冲高亮环 */}
+                {isNew && (
+                  <motion.span
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-2 ring-neon-400 shadow-[0_0_8px_2px_rgba(236,72,153,0.6)]"
+                  />
+                )}
+
+                {/* 新牌"新"字角标 */}
+                {isNew && (
+                  <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 z-20 rounded-full bg-neon-500 px-1 text-[9px] font-bold text-white shadow-neon-pink">
+                    新
                   </span>
                 )}
 
@@ -102,7 +126,7 @@ export function HandArea({
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

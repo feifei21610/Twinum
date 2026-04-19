@@ -30,6 +30,7 @@ import type {
 } from '../types/game';
 import { faceValue } from '../types/game';
 import { legalActionsFor } from '../game-engine/rules';
+import { tryBuildGroup, canBeat } from '../game-engine/rules';
 import { cn } from '../utils/cn';
 
 export interface ScoutPendingParams {
@@ -38,6 +39,16 @@ export interface ScoutPendingParams {
   flip: boolean;
   /** 经 flip 后玩家实际抽到的那张卡（预览用）*/
   preview: CardType;
+}
+
+/** S&S 中间态：Scout 已完成，等用户在新手牌上选好 Show 后确认 */
+export interface SasPendingParams {
+  scout: { from: 'left' | 'right'; flip: boolean; insertAt: number };
+  virtualHand: CardType[];
+  newlyInsertedIndex: number;
+  savedSelection: number[];
+  /** Scout 后剩余的场上 Active Set（用于合法 Show 校验） */
+  virtualActiveSet: CardGroup | null;
 }
 
 export interface ActionBarProps {
@@ -49,6 +60,10 @@ export interface ActionBarProps {
   /** Scout Step 2 的 pending 状态由父级（GamePage）持有，以便 HandArea 同步渲染插槽 */
   scoutPending: ScoutPendingParams | null;
   setScoutPending: (p: ScoutPendingParams | null) => void;
+  /** S&S 中间态（Scout 完成待确认 Show）由父级持有 */
+  sasPending: SasPendingParams | null;
+  onConfirmSasShow: () => void;
+  onCancelSas: () => void;
   className?: string;
 }
 
@@ -86,6 +101,9 @@ export function ActionBar({
   onClearSelection,
   scoutPending,
   setScoutPending,
+  sasPending,
+  onConfirmSasShow,
+  onCancelSas,
   className,
 }: ActionBarProps): JSX.Element {
   const player = game.players[playerIndex];
@@ -94,7 +112,7 @@ export function ActionBar({
   // Step 1 面板（选 from+flip）开关
   const [sourcePanel, setSourcePanel] = useState<null | 'scout' | 'sas'>(null);
 
-  // Show 可用性
+  // Show 可用性（正常手牌）
   const matchedShow = useMemo(
     () => findMatchingLegalShow(legal.shows, selectedIndexes),
     [legal.shows, selectedIndexes],
@@ -104,15 +122,35 @@ export function ActionBar({
   // Scout 可用性
   const canScout = legal.canScout;
 
-  // Scout & Show 可用性
-  const canScoutAndShow =
-    legal.canScoutAndShow && selectedIndexes.length >= 1;
+  // Scout & Show 可用性：放宽前置，不再要求先选牌
+  const canScoutAndShow = legal.canScoutAndShow;
 
   // Flip Hand 可用性
   const canFlipHand = legal.canFlipHand;
 
   // 当前是否处于 Step 2（选插入位置）
   const inSlotPhase = scoutPending != null;
+
+  // S&S 中间态：基于 virtualHand + virtualActiveSet 计算合法 Show
+  const sasMatchedShow = useMemo(() => {
+    if (!sasPending) return null;
+    const virtualLegalShows: Array<{ cardIndexes: number[]; group: CardGroup }> = [];
+    const vh = sasPending.virtualHand;
+    const virtualActive = sasPending.virtualActiveSet;
+    for (let start = 0; start < vh.length; start++) {
+      for (let end = start; end < vh.length; end++) {
+        const cards = vh.slice(start, end + 1);
+        const grp = tryBuildGroup(cards);
+        if (grp && canBeat(grp, virtualActive)) {
+          const idxs: number[] = [];
+          for (let i = start; i <= end; i++) idxs.push(i);
+          virtualLegalShows.push({ cardIndexes: idxs, group: grp });
+        }
+      }
+    }
+    return findMatchingLegalShow(virtualLegalShows, selectedIndexes);
+  }, [sasPending, selectedIndexes]);
+  const canConfirmSas = sasMatchedShow != null;
 
   const handleShow = () => {
     if (!canShow || !matchedShow) return;
@@ -153,6 +191,44 @@ export function ActionBar({
         className,
       )}
     >
+      {/* S&S 中间态：Scout 已完成，等待确认 Show */}
+      {sasPending && (
+        <div className="mb-2 rounded-lg border border-neon-400/30 bg-neon-500/10 px-3 py-2 text-xs">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="font-semibold text-neon-300">Scout & Show · 第 2 步：选择要出的牌</span>
+            <button
+              type="button"
+              onClick={onCancelSas}
+              className="text-[11px] font-semibold text-ink-400 hover:text-ink-50"
+            >
+              取消
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-ink-400">
+              {selectedIndexes.length > 0
+                ? sasMatchedShow
+                  ? `已选 ${selectedIndexes.length} 张 · ${sasMatchedShow.group.kind === 'same' ? '同数组' : '连续组'} min=${sasMatchedShow.group.minValue}`
+                  : `已选 ${selectedIndexes.length} 张 · 当前无法盖过场上`
+                : '点击手牌勾选（含高亮的新牌）'}
+            </span>
+            <button
+              type="button"
+              onClick={canConfirmSas ? onConfirmSasShow : undefined}
+              disabled={!canConfirmSas}
+              className={cn(
+                'rounded-lg px-3 py-1 text-[11px] font-bold transition-all',
+                canConfirmSas
+                  ? 'bg-gradient-neon text-white shadow-neon-primary active:scale-95'
+                  : 'cursor-not-allowed bg-surface-700 text-ink-400',
+              )}
+            >
+              确认 Show
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Step 2 提示条 */}
       {inSlotPhase && scoutPending && (
         <div className="mb-2 flex items-center justify-between rounded-lg bg-neon-500/10 px-3 py-2 text-xs">
@@ -176,8 +252,8 @@ export function ActionBar({
         </div>
       )}
 
-      {/* 选中提示条 */}
-      {!inSlotPhase && selectedIndexes.length > 0 && (
+      {/* 选中提示条（正常模式，无中间态） */}
+      {!inSlotPhase && !sasPending && selectedIndexes.length > 0 && (
         <div className="mb-2 flex items-center justify-between text-[11px]">
           <span className="text-ink-400">
             已选 {selectedIndexes.length} 张
@@ -194,66 +270,7 @@ export function ActionBar({
         </div>
       )}
 
-      {/* 主按钮区（Step 2 时全部置灰，避免误点） */}
-      <div className="flex items-stretch gap-2">
-        <ActionButton
-          label="Show"
-          icon={<Check className="h-4 w-4" />}
-          enabled={canShow && !inSlotPhase}
-          onClick={handleShow}
-          variant="primary"
-          tooltip={
-            canShow
-              ? '出牌'
-              : selectedIndexes.length === 0
-                ? '先选择手牌'
-                : '当前选择无法组成合法牌组或无法盖过场上'
-          }
-        />
-
-        <ActionButton
-          label="Scout"
-          icon={<ChevronLeft className="h-4 w-4" />}
-          enabled={canScout && !inSlotPhase}
-          active={sourcePanel === 'scout'}
-          onClick={() =>
-            canScout && setSourcePanel((v) => (v === 'scout' ? null : 'scout'))
-          }
-          variant="secondary"
-          tooltip={canScout ? '从场上抽一张' : '场上无牌可抽'}
-        />
-
-        <ActionButton
-          label="S&S"
-          icon={<Zap className="h-4 w-4" />}
-          enabled={canScoutAndShow && !inSlotPhase}
-          active={sourcePanel === 'sas'}
-          onClick={() =>
-            canScoutAndShow && setSourcePanel((v) => (v === 'sas' ? null : 'sas'))
-          }
-          variant="neon"
-          tooltip={
-            legal.canScoutAndShow
-              ? canScoutAndShow
-                ? 'Scout 后立即出牌'
-                : '先选择要出的手牌'
-              : player.scoutShowChipUsed
-                ? 'Chip 已用过'
-                : '场上需要有牌'
-          }
-        />
-
-        <ActionButton
-          label="翻面"
-          icon={<RefreshCw className="h-4 w-4" />}
-          enabled={canFlipHand && !inSlotPhase}
-          onClick={handleFlipHand}
-          variant="ghost"
-          tooltip={canFlipHand ? '整副翻转（仅本轮开局可用）' : '本轮已出过动作'}
-        />
-      </div>
-
-      {/* Step 1 子面板 */}
+      {/* Step 1 子面板（文档流内，面板展开时把整个 ActionBar 向上撑） */}
       <AnimatePresence>
         {sourcePanel && !inSlotPhase && game.activeSet && (
           <SourcePanel
@@ -268,6 +285,63 @@ export function ActionBar({
           />
         )}
       </AnimatePresence>
+
+      {/* 主按钮区（Step 2 / S&S 中间态时全部置灰，避免误点） */}
+      <div className="flex items-stretch gap-2">
+        <ActionButton
+          label="Show"
+          icon={<Check className="h-4 w-4" />}
+          enabled={canShow && !inSlotPhase && !sasPending}
+          onClick={handleShow}
+          variant="primary"
+          tooltip={
+            canShow
+              ? '出牌'
+              : selectedIndexes.length === 0
+                ? '先选择手牌'
+                : '当前选择无法组成合法牌组或无法盖过场上'
+          }
+        />
+
+        <ActionButton
+          label="Scout"
+          icon={<ChevronLeft className="h-4 w-4" />}
+          enabled={canScout && !inSlotPhase && !sasPending}
+          active={sourcePanel === 'scout'}
+          onClick={() =>
+            canScout && setSourcePanel((v) => (v === 'scout' ? null : 'scout'))
+          }
+          variant="secondary"
+          tooltip={canScout ? '从场上抽一张' : '场上无牌可抽'}
+        />
+
+        <ActionButton
+          label="S&S"
+          icon={<Zap className="h-4 w-4" />}
+          enabled={canScoutAndShow && !inSlotPhase && !sasPending}
+          active={sourcePanel === 'sas'}
+          onClick={() =>
+            canScoutAndShow && setSourcePanel((v) => (v === 'sas' ? null : 'sas'))
+          }
+          variant="neon"
+          tooltip={
+            legal.canScoutAndShow
+              ? 'Scout 后立即出牌'
+              : player.scoutShowChipUsed
+                ? 'S&S 已用'
+                : '场上需要有牌'
+          }
+        />
+
+        <ActionButton
+          label="翻面"
+          icon={<RefreshCw className="h-4 w-4" />}
+          enabled={canFlipHand && !inSlotPhase && !sasPending}
+          onClick={handleFlipHand}
+          variant="ghost"
+          tooltip={canFlipHand ? '整副翻转（仅本轮开局可用）' : '本轮已出过动作'}
+        />
+      </div>
     </div>
   );
 }
@@ -344,11 +418,13 @@ function SourcePanel({ game, title, onPick, onClose }: SourcePanelProps): JSX.El
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10 }}
-      className="absolute inset-x-3 bottom-full mb-2 rounded-xl border border-white/10 bg-surface-800/95 p-3 shadow-lg backdrop-blur-lg"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.22, ease: 'easeOut' }}
+      className="mb-2 overflow-hidden rounded-xl border border-white/10 bg-surface-800/95 shadow-lg backdrop-blur-lg"
     >
+      <div className="p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-ink-50">{title}</span>
         <button
@@ -429,6 +505,7 @@ function SourcePanel({ game, title, onPick, onClose }: SourcePanelProps): JSX.El
       </div>
       <div className="mt-2 text-[10px] text-ink-400">
         下一步：在手牌之间选择要插入的位置
+      </div>
       </div>
     </motion.div>
   );

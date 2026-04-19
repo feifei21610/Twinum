@@ -24,10 +24,11 @@ import { ScorePanel } from '../components/ScorePanel';
 import { OpponentArea } from '../components/OpponentArea';
 import { BoardArea } from '../components/BoardArea';
 import { HandArea } from '../components/HandArea';
-import { ActionBar, type ScoutPendingParams } from '../components/ActionBar';
+import { ActionBar, type ScoutPendingParams, type SasPendingParams } from '../components/ActionBar';
 import { GameLogDrawer } from '../components/GameLogDrawer';
 import { computeRoundScores } from '../game-engine/scoring';
 import type { Action } from '../types/game';
+import { faceValue } from '../types/game';
 
 export function GamePage(): JSX.Element {
   const game = useGameStore((s) => s.game);
@@ -47,6 +48,9 @@ export function GamePage(): JSX.Element {
     null,
   );
 
+  // S&S 中间态：Scout 完成后等待用户选 Show
+  const [sasPending, setSasPending] = useState<SasPendingParams | null>(null);
+
   // 日志抽屉开关
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
 
@@ -58,9 +62,12 @@ export function GamePage(): JSX.Element {
     if (!game) goto('start');
   }, [game, goto]);
 
-  // 切换回合时清理残留的 Scout pending 状态
+  // 切换回合时清理残留的 Scout pending 和 S&S 中间态
   useEffect(() => {
-    if (!isHumanTurn) setScoutPending(null);
+    if (!isHumanTurn) {
+      setScoutPending(null);
+      setSasPending(null);
+    }
   }, [isHumanTurn]);
 
   if (!game) return <></>;
@@ -99,7 +106,7 @@ export function GamePage(): JSX.Element {
   // 轮末结算数据
   const roundScores = isRoundEnd ? computeRoundScores(game) : null;
 
-  // Step 2：玩家点击手牌间插槽，完成 Scout 或 Scout&Show
+  // Step 2：玩家点击手牌间插槽，完成 Scout 或进入 S&S 中间态
   const handlePickSlot = (insertAt: number) => {
     if (!scoutPending) return;
 
@@ -115,25 +122,70 @@ export function GamePage(): JSX.Element {
       return;
     }
 
-    // Scout & Show：处理 index 偏移
-    // 用户选中的 index 基于"原手牌"，Scout 插入后：
-    //   - 原 index < insertAt：新 index = 原 index（不变）
-    //   - 原 index >= insertAt：新 index = 原 index + 1
-    const shiftedShow = [...selectedIndexes]
+    // S&S 模式：Scout 插入后进入中间态，等用户选好 Show 再确认
+    // 构造虚拟手牌（把 preview 牌插入 insertAt 位置）
+    const scoutedCard = scoutPending.preview;
+    const originalHand = me.hand;
+    const virtualHand = [
+      ...originalHand.slice(0, insertAt),
+      scoutedCard,
+      ...originalHand.slice(insertAt),
+    ];
+
+    // 把原 selectedIndexes 做偏移：>= insertAt 的 +1
+    const shiftedSelection = [...selectedIndexes]
       .sort((a, b) => a - b)
       .map((i) => (i >= insertAt ? i + 1 : i));
 
+    // 构造 virtualActiveSet：从 activeSet 中移除 Scout 掉的那端牌
+    let virtualActiveSet: typeof game.activeSet = null;
+    if (game.activeSet) {
+      const remainingCards =
+        scoutPending.from === 'left'
+          ? game.activeSet.cards.slice(1)
+          : game.activeSet.cards.slice(0, -1);
+      if (remainingCards.length > 0) {
+        const vals = remainingCards.map((c) => (c.flipped ? c.bottom : c.top));
+        virtualActiveSet = {
+          ...game.activeSet,
+          cards: remainingCards,
+          minValue: Math.min(...vals),
+        };
+      }
+      // remainingCards.length === 0 时 virtualActiveSet 保持 null（场上清空）
+    }
+
+    setSasPending({
+      scout: { from: scoutPending.from, flip: scoutPending.flip, insertAt },
+      virtualHand,
+      newlyInsertedIndex: insertAt,
+      savedSelection: [...selectedIndexes],
+      virtualActiveSet,
+    });
+    setScoutPending(null);
+
+    // 更新 selectedIndexes 为偏移后的值（直接写 store）
+    useGameStore.setState({ selectedHandIndexes: shiftedSelection });
+  };
+
+  // S&S 中间态：用户确认 Show
+  const handleConfirmSasShow = () => {
+    if (!sasPending) return;
     const action: Action = {
       type: 'SCOUT_AND_SHOW',
-      scout: {
-        from: scoutPending.from,
-        flip: scoutPending.flip,
-        insertAt,
-      },
-      show: shiftedShow,
+      scout: sasPending.scout,
+      show: [...selectedIndexes].sort((a, b) => a - b),
     };
-    setScoutPending(null);
+    setSasPending(null);
     dispatchAction(action);
+  };
+
+  // S&S 中间态：用户取消（回退 UI，不触发引擎）
+  const handleCancelSas = () => {
+    if (!sasPending) return;
+    const saved = sasPending.savedSelection;
+    setSasPending(null);
+    useGameStore.setState({ selectedHandIndexes: saved });
   };
 
   return (
@@ -180,14 +232,15 @@ export function GamePage(): JSX.Element {
             {me.name} · 手牌 {me.hand.length} 张
           </span>
           <span className="text-ink-400">
-            已收集 {me.collectedCards.length} · Chip {me.scoutChips}
+            credits {me.collectedCards.length + me.scoutChips}
           </span>
         </div>
         <HandArea
-          hand={me.hand}
+          hand={sasPending ? sasPending.virtualHand : me.hand}
           selectedIndexes={selectedIndexes}
           disabled={!isHumanTurn}
           onToggleCard={toggleSelectCard}
+          highlightIndex={sasPending ? sasPending.newlyInsertedIndex : undefined}
           insertSlotMode={
             scoutPending
               ? {
@@ -208,6 +261,9 @@ export function GamePage(): JSX.Element {
         onClearSelection={clearSelection}
         scoutPending={scoutPending}
         setScoutPending={setScoutPending}
+        sasPending={sasPending}
+        onConfirmSasShow={handleConfirmSasShow}
+        onCancelSas={handleCancelSas}
         className="flex-shrink-0"
       />
 
@@ -253,7 +309,7 @@ export function GamePage(): JSX.Element {
                           )}
                         </span>
                         <span className="text-[10px] text-ink-400">
-                          收集 {rs.collectedPoints} · Chip {rs.scoutChipPoints} · 扣手牌 {rs.handPenalty}
+                          credits {rs.collectedPoints + rs.scoutChipPoints} · 扣手牌 {rs.handPenalty}
                         </span>
                       </div>
                       <div className="flex items-center gap-3">

@@ -119,25 +119,27 @@ function OpponentCard({
           <span className="font-semibold text-ink-100">{handCount}</span>
         </div>
 
-        {/* Scout 代币（每个计 1 分） */}
+        {/* Credits = 已收集 + Scout Chip，合并展示 */}
         <div
           className="flex items-center justify-between text-ink-300"
-          title="Scout 代币 · 每个计 1 分"
+          title="Credits = 已收集翻面牌数 + Scout Chip 数，每个计 1 分"
         >
           <span className="flex items-center gap-1">
             <Coins className="h-3 w-3 text-warning" />
-            代币
+            credits
           </span>
-          <span className="font-semibold text-ink-100">{player.scoutChips}</span>
+          <span className="font-semibold text-ink-100">
+            {player.collectedCards.length + player.scoutChips}
+          </span>
         </div>
 
-        {/* Scout & Show 特权 */}
+        {/* S&S 特权 */}
         <div
           className={cn(
             'flex items-center justify-between',
             player.scoutShowChipUsed ? 'text-ink-500' : 'text-ink-300',
           )}
-          title="Scout & Show 特权 · 每轮限用 1 次"
+          title="S&S（Scout & Show）· 每轮限用 1 次"
         >
           <span className="flex items-center gap-1">
             <Zap
@@ -146,7 +148,7 @@ function OpponentCard({
                 player.scoutShowChipUsed ? 'text-ink-500' : 'text-neon-400',
               )}
             />
-            特权
+            S&S
           </span>
           <span
             className={cn(
