@@ -5,17 +5,6 @@
 import type { Card, CardGroup, CardGroupKind, GameState, Action } from '../types/game';
 import { faceValue } from '../types/game';
 
-function isValidCardLike(card: unknown): card is Card {
-  if (!card || typeof card !== 'object') return false;
-  const maybe = card as Partial<Card>;
-  return (
-    typeof maybe.id === 'string'
-    && typeof maybe.top === 'number'
-    && typeof maybe.bottom === 'number'
-    && typeof maybe.flipped === 'boolean'
-  );
-}
-
 // ========== 合法牌组判定 ==========
 
 /**
@@ -26,7 +15,6 @@ function isValidCardLike(card: unknown): card is Card {
  */
 export function tryBuildGroup(cards: Card[]): CardGroup | null {
   if (cards.length === 0) return null;
-  if (cards.some((c) => !isValidCardLike(c))) return null;
 
   // 单张牌：任意一张都合法，视为"相同数字组"（长度 1）
   if (cards.length === 1) {

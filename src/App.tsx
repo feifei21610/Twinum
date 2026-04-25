@@ -2,14 +2,14 @@
  * Twinum App 根组件
  *
  * 简易路由：根据 gameStore.route 切换页面。
- * MVP 阶段 4 个页面：start / game / result / rules
- * （result / rules 为占位，放到 Todo 6 pages-assembly 实现）
+ * 页面：start / game / result / rules / online
  */
 import { useGameStore, selectRoute } from './store/gameStore';
 import { StartPage } from './pages/StartPage';
 import { GamePage } from './pages/GamePage';
 import { ResultPagePlaceholder } from './pages/ResultPage';
 import { RulesPagePlaceholder } from './pages/RulesPage';
+import { OnlineLobbyPage } from './pages/OnlineLobbyPage';
 
 function App(): JSX.Element {
   const route = useGameStore(selectRoute);
@@ -23,6 +23,8 @@ function App(): JSX.Element {
       return <ResultPagePlaceholder />;
     case 'rules':
       return <RulesPagePlaceholder />;
+    case 'online':
+      return <OnlineLobbyPage />;
     default:
       return <StartPage />;
   }

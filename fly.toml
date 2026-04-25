@@ -1,0 +1,44 @@
+# fly.toml app configuration file generated for twinum-server on 2026-04-25T17:56:13+08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'twinum-server'
+primary_region = 'nrt'
+
+[build]
+  dockerfile = 'packages/server/Dockerfile'
+
+[env]
+  ALLOWED_ORIGINS = 'https://feifei21610.github.io'
+  NODE_ENV = 'production'
+  PORT = '2567'
+
+[http_service]
+  internal_port = 2567
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 100
+    soft_limit = 80
+
+[checks]
+  [checks.health]
+    port = 2567
+    type = 'http'
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
+    protocol = 'http'
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256

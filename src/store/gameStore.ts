@@ -20,7 +20,7 @@ import {
 import { STORAGE_PREFIX } from '../constants/game';
 import { buildLogEntry, type GameLogEntry } from '../utils/game-log';
 
-export type RouteName = 'start' | 'game' | 'result' | 'rules';
+export type RouteName = 'start' | 'game' | 'result' | 'rules' | 'online';
 
 export interface GameStoreState {
   // ========== 路由 ==========

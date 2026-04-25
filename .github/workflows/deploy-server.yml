@@ -1,0 +1,41 @@
+#
+# Fly.io 服务端自动部署工作流
+#
+# 触发时机：
+#   - push 到 main 分支且有服务端相关文件改动
+#   - 手动触发（workflow_dispatch）
+#
+# Secrets 配置（GitHub repo Settings → Secrets and variables → Actions）：
+#   FLY_API_TOKEN  —  flyctl tokens create deploy -a twinum-server
+#
+name: Deploy Server to Fly.io
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/server/**'
+      - 'packages/shared/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-server.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only --app twinum-server
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

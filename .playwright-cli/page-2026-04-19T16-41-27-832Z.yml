@@ -1,0 +1,45 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img [ref=e6]
+    - heading "Twinum" [level=1] [ref=e8]
+    - paragraph [ref=e9]: 双数 · 致敬 Scout 的 H5 卡牌对战
+  - generic [ref=e10]:
+    - button "卡牌 5" [ref=e12] [cursor=pointer]:
+      - generic [ref=e13]: "5"
+      - generic [ref=e14]: "2"
+    - button "卡牌 8" [ref=e17] [cursor=pointer]:
+      - generic [ref=e18]: "8"
+      - generic [ref=e19]: "3"
+    - button "卡牌 7（已翻面）" [ref=e22] [cursor=pointer]:
+      - generic [ref=e23]: "7"
+      - generic [ref=e24]: "4"
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - generic [ref=e33]: 单机练习
+        - paragraph [ref=e34]: 和 Bot 对战，随时开局，无需网络
+        - generic [ref=e35]:
+          - button "4人" [ref=e36] [cursor=pointer]
+          - button "5人" [ref=e37] [cursor=pointer]
+        - button "开始" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: 开始
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - generic [ref=e47]: 联机对战
+        - paragraph [ref=e48]: 和朋友一起玩，发链接邀请加入
+        - button "进入" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - text: 进入
+    - generic [ref=e55]:
+      - button "规则说明" [ref=e56] [cursor=pointer]:
+        - img [ref=e57]
+        - text: 规则说明
+      - link "GitHub" [ref=e59] [cursor=pointer]:
+        - /url: https://github.com/feifei21610/twinum
+        - img [ref=e60]
+        - text: GitHub
+    - paragraph [ref=e63]: 致敬 Oink Games《SCOUT!》· 个人学习作品 · 非商业项目

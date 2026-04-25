@@ -2,19 +2,29 @@
 # GitHub Pages 自动部署工作流
 #
 # 触发时机：
-#   - push 到 main 分支
+#   - push 到 main 分支（且有前端相关文件改动）
 #   - 手动触发（workflow_dispatch）
 #
-# 部署目标：https://feifei21610.github.io/twinum/
+# 部署目标：https://feifei21610.github.io/Twinum/
 #
-# 权限说明：需要在仓库 Settings → Pages → Build and deployment
-#          Source 设置为 "GitHub Actions"
+# Secrets 配置（GitHub repo Settings → Secrets and variables → Actions）：
+#   VITE_SERVER_URL  —  wss://twinum-server.fly.dev
 #
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig*.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'packages/shared/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch: {}
 
 # 同一时间只允许一个部署任务执行（避免并发冲突）
@@ -48,6 +58,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_SERVER_URL: ${{ secrets.VITE_SERVER_URL }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

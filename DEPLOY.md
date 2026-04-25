@@ -152,3 +152,109 @@ deploy job
 
 ### Q: 改了 `vite.config.ts` 的 base 但线上 404
 → base 必须与 URL 大小写完全一致：`'/Twinum/'`（大写 T）。
+
+---
+
+## 🚀 Fly.io 服务端部署
+
+### 首次部署（只需做一次）
+
+**前提：** 已安装 `flyctl`（`brew install flyctl`）并登录（`flyctl auth login`）
+
+```bash
+cd /Users/tangni/Documents/CodeBuddy_Workspace/twinum
+
+# 1. 在 Fly.io 创建 app（首次）
+fly launch --no-deploy --name twinum-server --region nrt
+
+# 2. fly.toml 在 twinum/ 根目录，无需 --config 参数
+
+# 3. 首次部署
+fly deploy
+
+# 4. 验证
+curl https://twinum-server.fly.dev/health
+# 应返回 {"status":"ok","time":"..."}
+```
+
+### 日常更新
+
+有两种方式：
+
+**方式 A（自动）：** push 到 main 且改动含 `packages/server/**` 或 `packages/shared/**`，`deploy-server.yml` 自动触发。
+
+**方式 B（手动）：**
+```bash
+fly deploy
+```
+
+### Secrets 配置
+
+```bash
+# GitHub repo Settings → Secrets and variables → Actions 添加：
+# 1. FLY_API_TOKEN（服务端 CI 部署用）
+flyctl tokens create deploy -a twinum-server
+# 把输出的 token 填入 GitHub Secrets "FLY_API_TOKEN"
+
+# 2. VITE_SERVER_URL（前端构建注入用）
+# 值：wss://twinum-server.fly.dev
+# 在 GitHub Secrets 添加 "VITE_SERVER_URL"
+```
+
+### 常用 fly 命令
+
+```bash
+# 查看实时日志
+fly logs --app twinum-server
+
+# 查看机器状态（running/stopped）
+fly status --app twinum-server
+
+# 查看 Metrics（内存/CPU 占用）
+fly dashboard --app twinum-server
+
+# 回滚到上一个版本
+fly releases --app twinum-server   # 看 release 列表
+fly deploy --image <image-id> --app twinum-server
+
+# SSH 进入容器调试
+fly ssh console --app twinum-server
+```
+
+### 冷启动说明
+
+`min_machines_running = 0` 表示无人访问时机器会 auto-stop，节省成本。
+- 冷启动时间：约 2-5 秒
+- 前端 `networkClient.init()` 已有重试逻辑，用户看到"短暂 Loading"而非白屏
+- 如果冷启动体验不满意，可将 `min_machines_running = 1`（约 $2/月）
+
+### 上线前 Checklist
+
+- [ ] `npm run test` 全通过
+- [ ] 本地 4 人局回归（含断线重连、Bot 接管）
+- [ ] `docker build -f packages/server/Dockerfile -t twinum-server . && docker run -p 2567:2567 twinum-server` 镜像能跑起来
+- [ ] `curl http://localhost:2567/health` 返回 `{"status":"ok",...}`
+- [ ] `fly deploy` 成功，`curl https://twinum-server.fly.dev/health` 返回 ok
+- [ ] GitHub Secrets 添加 `FLY_API_TOKEN` 和 `VITE_SERVER_URL`
+- [ ] push main 触发前端 deploy.yml，DevTools Network 确认连接 `wss://twinum-server.fly.dev`
+- [ ] 手机 4G + 电脑 WiFi 跨网真机测一局
+- [ ] `fly logs` 观察 1 小时，无 uncaught exception，房间创建/释放数量匹配
+
+### 成本控制
+
+- 当前配置：shared-cpu-1x 256MB + min_machines=0 → **免费额度内**
+- 建议在 Fly dashboard 设置 Spend Limit（$5/月），防意外超出
+- `fly dashboard billing` 可查看用量
+
+### 环境变量
+
+| 变量 | 说明 | 默认值 |
+|---|---|---|
+| `PORT` | 监听端口 | `2567` |
+| `NODE_ENV` | 环境 | `production` |
+| `ALLOWED_ORIGINS` | CORS 白名单（逗号分隔）| `https://feifei21610.github.io` |
+
+如需添加新 origin（例如自定义域名）：
+```bash
+fly secrets set ALLOWED_ORIGINS="https://feifei21610.github.io,https://yourdomain.com" --app twinum-server
+```

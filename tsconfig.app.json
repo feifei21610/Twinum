@@ -21,7 +21,13 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* Path aliases */
+    "paths": {
+      "@twinum/shared": ["./packages/shared/src/index.ts"],
+      "@twinum/shared/*": ["./packages/shared/src/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "packages/shared/src"]
 }
