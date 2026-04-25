@@ -29,7 +29,7 @@ import type {
   GameState,
 } from '../types/game';
 import { faceValue } from '../types/game';
-import { legalActionsFor } from '../game-engine/rules';
+import { legalActionsFor, diagnoseShowReason } from '../game-engine/rules';
 import { tryBuildGroup, canBeat } from '../game-engine/rules';
 import { cn } from '../utils/cn';
 
@@ -119,6 +119,12 @@ export function ActionBar({
   );
   const canShow = matchedShow != null;
 
+  // Show 失败原因（实时诊断）
+  const showReason = useMemo(
+    () => diagnoseShowReason(player.hand, selectedIndexes, game.activeSet ?? null),
+    [player.hand, selectedIndexes, game.activeSet],
+  );
+
   // Scout 可用性
   const canScout = legal.canScout;
 
@@ -151,6 +157,16 @@ export function ActionBar({
     return findMatchingLegalShow(virtualLegalShows, selectedIndexes);
   }, [sasPending, selectedIndexes]);
   const canConfirmSas = sasMatchedShow != null;
+
+  // S&S 中间态 Show 失败原因（基于 virtualHand + virtualActiveSet）
+  const sasReason = useMemo(() => {
+    if (!sasPending) return '';
+    return diagnoseShowReason(
+      sasPending.virtualHand,
+      selectedIndexes,
+      sasPending.virtualActiveSet,
+    );
+  }, [sasPending, selectedIndexes]);
 
   const handleShow = () => {
     if (!canShow || !matchedShow) return;
@@ -209,7 +225,7 @@ export function ActionBar({
               {selectedIndexes.length > 0
                 ? sasMatchedShow
                   ? `已选 ${selectedIndexes.length} 张 · ${sasMatchedShow.group.kind === 'same' ? '同数组' : '连续组'} min=${sasMatchedShow.group.minValue}`
-                  : `已选 ${selectedIndexes.length} 张 · 当前无法盖过场上`
+                  : <span className="text-red-400">{`已选 ${selectedIndexes.length} 张 · ${sasReason || '无法出牌'}`}</span>
                 : '点击手牌勾选（含高亮的新牌）'}
             </span>
             <button
@@ -255,10 +271,13 @@ export function ActionBar({
       {/* 选中提示条（正常模式，无中间态） */}
       {!inSlotPhase && !sasPending && selectedIndexes.length > 0 && (
         <div className="mb-2 flex items-center justify-between text-[11px]">
-          <span className="text-ink-400">
+          <span className={canShow ? 'text-green-400' : 'text-red-400'}>
             已选 {selectedIndexes.length} 张
-            {matchedShow &&
-              ` · ${matchedShow.group.kind === 'same' ? '同数组' : '连续组'} min=${matchedShow.group.minValue}`}
+            {canShow && matchedShow
+              ? ` · ${matchedShow.group.kind === 'same' ? '同数组' : '连续组'} min=${matchedShow.group.minValue}`
+              : showReason
+                ? ` · ${showReason}`
+                : ''}
           </span>
           <button
             type="button"
@@ -294,13 +313,7 @@ export function ActionBar({
           enabled={canShow && !inSlotPhase && !sasPending}
           onClick={handleShow}
           variant="primary"
-          tooltip={
-            canShow
-              ? '出牌'
-              : selectedIndexes.length === 0
-                ? '先选择手牌'
-                : '当前选择无法组成合法牌组或无法盖过场上'
-          }
+          tooltip={canShow ? '出牌' : showReason || '先选择手牌'}
         />
 
         <ActionButton
@@ -328,8 +341,8 @@ export function ActionBar({
             legal.canScoutAndShow
               ? 'Scout 后立即出牌'
               : player.scoutShowChipUsed
-                ? 'S&S 已用'
-                : '场上需要有牌'
+                ? 'S&S 每轮仅限 1 次'
+                : '场上需要有牌才能 S&S'
           }
         />
 
@@ -339,7 +352,7 @@ export function ActionBar({
           enabled={canFlipHand && !inSlotPhase && !sasPending}
           onClick={handleFlipHand}
           variant="ghost"
-          tooltip={canFlipHand ? '整副翻转（仅本轮开局可用）' : '本轮已出过动作'}
+          tooltip={canFlipHand ? '整副翻转' : '翻面仅限本轮开局前使用'}
         />
       </div>
     </div>

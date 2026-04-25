@@ -195,3 +195,46 @@ export function legalActionsFor(state: GameState, playerIndex: number): LegalAct
 
   return { shows, scouts, canScout, canFlipHand, canScoutAndShow };
 }
+
+// ========== Show 失败原因诊断 ==========
+
+/**
+ * 诊断玩家当前选牌无法 Show 的具体原因。
+ *
+ * 优先级（越早越高）：
+ *   1. 未选牌
+ *   2. 所选牌在手牌中位置不相邻（有跳跃）
+ *   3. 所选牌不构成合法组（非同数字、非连续数字）
+ *   4. 合法但压不过场上牌组
+ *   5. 合法且能盖过 → 返回 ''（无错误）
+ *
+ * @param hand            当前手牌
+ * @param selectedIndexes 玩家已选中的手牌下标（顺序不限）
+ * @param activeSet       场上当前牌组（null 表示无牌）
+ * @returns 中文失败原因字符串，合法时返回空字符串 ''
+ */
+export function diagnoseShowReason(
+  hand: Card[],
+  selectedIndexes: number[],
+  activeSet: CardGroup | null,
+): string {
+  // 1. 未选
+  if (selectedIndexes.length === 0) return '先选择手牌';
+
+  // 2. 不相邻（排序后逐对检查）
+  const sorted = [...selectedIndexes].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] !== sorted[i - 1] + 1) return '所选牌必须位置相邻';
+  }
+
+  // 3. 不合规
+  const cards = sorted.map((i) => hand[i]);
+  const group = tryBuildGroup(cards);
+  if (!group) return '需同数字或连续数字';
+
+  // 4. 压不过场上
+  if (!canBeat(group, activeSet)) return '无法盖过场上（需更大或更长）';
+
+  // 5. 合法
+  return '';
+}
