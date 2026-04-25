@@ -60,9 +60,9 @@ export class GameRoom extends Room<GameRoomState> {
     this.setState(new GameRoomState());
     this.setPatchRate(50); // 20fps 广播，节省流量
 
-    // 房主设定目标人数
+    // 房主设定目标人数（Scout 原版规则：3-5 人）
     const targetCount = options.targetPlayerCount ?? 4;
-    this.state.targetPlayerCount = Math.max(2, Math.min(5, targetCount));
+    this.state.targetPlayerCount = Math.max(3, Math.min(5, targetCount));
     this.maxClients = this.state.targetPlayerCount; // 按房间配置限制入场
 
     // 注册消息处理
@@ -206,8 +206,8 @@ export class GameRoom extends Room<GameRoomState> {
     const totalCount = this.state.targetPlayerCount;
     const botCount = totalCount - humanCount;
 
-    if (totalCount < 2 || totalCount > 5) {
-      console.warn('[GameRoom] invalid player count');
+    if (totalCount < 3 || totalCount > 5) {
+      console.warn(`[GameRoom] roomId=${this.roomId} event=startGame invalid player count=${totalCount}`);
       return;
     }
 

@@ -163,7 +163,7 @@ export function OnlineLobbyPage(): JSX.Element {
             <div>
               <label className="mb-1.5 block text-xs text-ink-400">房间人数（空位补 Bot）</label>
               <div className="flex gap-2">
-                {([2, 3, 4, 5] as const).map((n) => (
+                {([3, 4, 5] as const).map((n) => (
                   <button
                     key={n}
                     type="button"

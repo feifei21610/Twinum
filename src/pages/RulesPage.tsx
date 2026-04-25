@@ -38,15 +38,30 @@ const rule1Groups: { cards: CardType[] }[] = [
 const rule2Actions = [
   {
     label: 'Show',
-    desc: '出一组相邻手牌（同数字或连续数字），必须能盖过场上当前牌组才能出。第一家随意出。',
+    desc: '出一组相邻手牌（同数字或连续数字），必须能盖过场上当前牌组。第一家可随意出。',
   },
   {
     label: 'Scout',
-    desc: '从场上牌组左端或右端抽一张，可选翻面，插入手牌任意位置。原主人得 1 分。',
+    desc: '从场上牌组的左端或右端抽走 1 张，可选翻面后插入自己手牌任意位置。',
   },
   {
     label: 'S&S',
-    desc: '先 Scout 一张再立即出牌。每人每轮仅限 1 次，用完置灰。',
+    desc: '先 Scout 一张，再立即 Show 一次。每人每轮限用 1 次。',
+  },
+];
+
+const rule3ScoreItems = [
+  {
+    label: '+ 收牌',
+    desc: '每成功 Show 一次，就把场上被盖过的那组牌收到自己面前。每张 = 1 分。',
+  },
+  {
+    label: '+ 被抽',
+    desc: '别人从你的牌组里 Scout 走 1 张牌时，你（原主人）得 1 分。',
+  },
+  {
+    label: '− 剩牌',
+    desc: '本轮结束时，手里每剩 1 张牌就扣 1 分。（结束方式 ② 下 Show 者免扣）',
   },
 ];
 
@@ -89,42 +104,39 @@ function QuickRulesCard(): JSX.Element {
           >
             <div className="space-y-5 border-t border-white/5 px-4 pb-5 pt-4">
 
-              {/* 目标 */}
+              {/* 1. 目标 */}
               <div>
                 <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
                   🎯 目标
                 </p>
                 <p className="text-xs leading-relaxed text-ink-300">
-                  4 人局打 4 轮，每轮结算：credits（收集翻面牌数 + Scout 分）−
-                  剩余手牌数。总分最高者获胜。
+                  4 人一局，共打 <b className="text-ink-100">4 轮</b>。每轮独立结算得分，
+                  <b className="text-ink-100">4 轮总分最高者获胜</b>。
                 </p>
               </div>
 
-              {/* RULE 1 牌组强度 */}
+              {/* 2. 一轮何时结束 */}
               <div>
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
-                  🃏 牌组强度
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🏁 一轮何时结束
                 </p>
-                <div className="flex items-center justify-center gap-1.5 overflow-x-auto pb-1">
-                  {rule1Groups.map((grp, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <div className="flex items-end gap-0.5">
-                        {grp.cards.map((c) => (
-                          <Card key={c.id} card={c} size="xs" disabled />
-                        ))}
-                      </div>
-                      {i < rule1Groups.length - 1 && (
-                        <span className="shrink-0 text-sm font-bold text-ink-300">›</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-1.5 text-center text-[10px] text-ink-400">
-                  长组 › 短组 · 相同 › 连续 · 最小值大者胜
+                <p className="text-xs leading-relaxed text-ink-300">
+                  满足以下任一条件，本轮立即结束并结算：
                 </p>
+                <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-ink-300">
+                  <li>
+                    <span className="mr-1 font-bold text-ink-100">①</span>
+                    有人出完所有手牌；
+                  </li>
+                  <li>
+                    <span className="mr-1 font-bold text-ink-100">②</span>
+                    某人 Show 之后，其余 3 人都只选择 Scout，轮回到 Show 者。
+                    （此时 Show 者<b className="text-ink-100">免扣</b>剩余手牌分）
+                  </li>
+                </ul>
               </div>
 
-              {/* RULE 2 每回合动作 */}
+              {/* 3. 每回合三选一 */}
               <div>
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
                   🔀 每回合三选一
@@ -141,24 +153,62 @@ function QuickRulesCard(): JSX.Element {
                 </div>
               </div>
 
-              {/* 整副翻转 */}
+              {/* 4. 本轮得分怎么算 */}
+              <div>
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  📊 本轮得分怎么算
+                </p>
+                <div className="space-y-2.5">
+                  {rule3ScoreItems.map(({ label, desc }) => (
+                    <div key={label} className="flex gap-2.5">
+                      <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
+                        {label}
+                      </span>
+                      <span className="text-xs leading-relaxed text-ink-300">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 rounded-lg bg-white/5 px-3 py-2 text-center text-xs font-bold text-ink-100">
+                  本轮得分 = 收牌数 + 被抽分 − 剩余手牌数
+                </p>
+              </div>
+
+              {/* 5. 牌组强度 */}
+              <div>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                  🃏 牌组强度（Show 时怎么比大小）
+                </p>
+                <p className="text-xs leading-relaxed text-ink-300">
+                  按以下顺序依次比较，前者优先：
+                </p>
+                <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-ink-300">
+                  <li><span className="mr-1 font-bold text-ink-100">①</span> 牌数多的更强（3 张 &gt; 2 张 &gt; 1 张）；</li>
+                  <li><span className="mr-1 font-bold text-ink-100">②</span> 同牌数时，<b className="text-ink-100">同数字</b> 强于 <b className="text-ink-100">连续数字</b>；</li>
+                  <li><span className="mr-1 font-bold text-ink-100">③</span> 再相同时，<b className="text-ink-100">最小数字更大</b>者胜。</li>
+                </ul>
+                <div className="mt-2.5 flex items-center justify-center gap-1">
+                  {rule1Groups.map((grp, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <div className="flex items-end gap-0.5">
+                        {grp.cards.map((c) => (
+                          <Card key={c.id} card={c} size="xs" disabled />
+                        ))}
+                      </div>
+                      {i < rule1Groups.length - 1 && (
+                        <span className="shrink-0 text-sm font-bold text-ink-300">›</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. 整副翻转 */}
               <div>
                 <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
                   🔁 整副翻转
                 </p>
                 <p className="text-xs leading-relaxed text-ink-300">
                   每轮开始、尚未行动前，可将整副手牌翻面（正反互换）。每轮限用一次。
-                </p>
-              </div>
-
-              {/* 回合结束 */}
-              <div>
-                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
-                  🏁 回合结束
-                </p>
-                <p className="text-xs leading-relaxed text-ink-300">
-                  ① 有人出完所有手牌；或 ② Show 后其余玩家均只 Scout 轮回到 Show 者。
-                  第 ② 种情况的 Show 者免扣剩余手牌分。
                 </p>
               </div>
 
