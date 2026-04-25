@@ -347,12 +347,12 @@ export function ActionBar({
         />
 
         <ActionButton
-          label="翻面"
+          label="Flip"
           icon={<RefreshCw className="h-4 w-4" />}
           enabled={canFlipHand && !inSlotPhase && !sasPending}
           onClick={handleFlipHand}
           variant="ghost"
-          tooltip={canFlipHand ? '整副翻转' : '翻面仅限本轮开局前使用'}
+          tooltip={canFlipHand ? '整副翻转' : '翻转仅限本轮开局前使用'}
         />
       </div>
     </div>

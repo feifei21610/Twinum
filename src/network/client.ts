@@ -20,6 +20,7 @@ export type ServerUrl = string;
 export interface CreateRoomOptions {
   nickname: string;
   targetPlayerCount: number; // 2-5
+  targetRounds: number;      // 总轮数
 }
 
 export interface JoinRoomOptions {
@@ -54,6 +55,7 @@ export interface RoomEventMap {
 export interface LobbySnapshot {
   players: Array<{ playerIndex: number; nickname: string }>;
   targetPlayerCount: number;
+  targetRounds: number;
   hostSessionId: string;
 }
 
@@ -112,6 +114,7 @@ class TwinumNetworkClient {
     this.room = await this.colyseusClient.create('game', {
       nickname: opts.nickname,
       targetPlayerCount: opts.targetPlayerCount,
+      targetRounds: opts.targetRounds,
     });
 
     this.attachRoomListeners();
@@ -132,7 +135,7 @@ class TwinumNetworkClient {
 
   /** 断线重连（使用 reconnectionToken，兼容 colyseus.js 0.16） */
   async reconnect(): Promise<void> {
-    const token = sessionStorage.getItem('twinum_reconnection_token');
+    const token = localStorage.getItem('twinum_reconnection_token');
     if (!token) throw new Error('无重连 token，请重新加入房间');
     if (!this.colyseusClient) {
       if (!this.serverUrl) throw new Error('未初始化 network client');
@@ -174,7 +177,8 @@ class TwinumNetworkClient {
     await this.room?.leave();
     this.room = null;
     this.handlers = {};
-    sessionStorage.removeItem('twinum_reconnection_token');
+    localStorage.removeItem('twinum_reconnection_token');
+    localStorage.removeItem('twinum_room_id');
   }
 
   /** 监听服务器事件 */
@@ -210,7 +214,8 @@ class TwinumNetworkClient {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const token = (this.room as any).reconnectionToken as string | undefined;
     if (token) {
-      sessionStorage.setItem('twinum_reconnection_token', token);
+      localStorage.setItem('twinum_reconnection_token', token);
+      localStorage.setItem('twinum_room_id', this.room.roomId);
     }
   }
 

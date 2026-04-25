@@ -31,6 +31,11 @@ export interface StartGameOptions {
    *   - true：所有玩家都是 Bot，命名使用 BOT_NAMES
    */
   allBots?: boolean;
+  /**
+   * 总轮数。默认 = playerCount（Scout 原版规则：每人做一次起始玩家）。
+   * 房主可自定义（如 1～10 轮）。
+   */
+  totalRounds?: number;
 }
 
 export interface StartGameResult {
@@ -106,7 +111,7 @@ export function startNewGame(options: StartGameOptions = {}): StartGameResult {
     roundEndConditionTriggerer: null,
     roundEndCondition: null,
     round: 1,
-    totalRounds: playerCount,
+    totalRounds: options.totalRounds ?? playerCount,
     phase: 'playing',
     seed,
     history: [],

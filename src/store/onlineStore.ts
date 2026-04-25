@@ -63,6 +63,7 @@ export interface OnlineStoreState {
   // 大厅信息
   lobby: LobbySnapshot | null;
   targetPlayerCount: number;
+  targetRounds: number;
 
   // 游戏中状态
   myHand: Card[];
@@ -78,7 +79,7 @@ export interface OnlineStoreActions {
   /** 初始化网络连接（设置服务器地址） */
   init: (serverUrl: string) => void;
   /** 创建房间（房主流程） */
-  createRoom: (nickname: string, targetPlayerCount: number) => Promise<string>; // 返回 shareUrl
+  createRoom: (nickname: string, targetPlayerCount: number, targetRounds: number) => Promise<string>; // 返回 shareUrl
   /** 加入房间（非房主流程，或通过分享链接） */
   joinRoom: (roomId: string, nickname: string) => Promise<void>;
   /** 检测 URL 是否有 room 参数并自动加入 */
@@ -97,6 +98,8 @@ export interface OnlineStoreActions {
   setNickname: (name: string) => void;
   /** 设置目标人数（房主在大厅设置） */
   setTargetPlayerCount: (count: number) => void;
+  /** 设置总轮数（房主在大厅设置） */
+  setTargetRounds: (rounds: number) => void;
 }
 
 export type OnlineStore = OnlineStoreState & OnlineStoreActions;
@@ -111,6 +114,7 @@ const initialState: OnlineStoreState = {
   isHost: false,
   lobby: null,
   targetPlayerCount: 4,
+  targetRounds: 4,
   myHand: [],
   gameSnapshot: null,
   lastRoundScores: null,
@@ -125,18 +129,13 @@ export const useOnlineStore = create<OnlineStore>()((set, get) => ({
     networkClient.init(serverUrl);
   },
 
-  createRoom: async (nickname, targetPlayerCount) => {
-    set({ phase: 'connecting', errorMessage: null, myNickname: nickname, targetPlayerCount });
+  createRoom: async (nickname, targetPlayerCount, targetRounds) => {
+    set({ phase: 'connecting', errorMessage: null, myNickname: nickname, targetPlayerCount, targetRounds });
     try {
-      const { roomId, shareUrl } = await networkClient.createRoom({ nickname, targetPlayerCount });
+      const { roomId, shareUrl } = await networkClient.createRoom({ nickname, targetPlayerCount, targetRounds });
       attachNetworkListeners(set, get);
       set({ phase: 'lobby', roomId, sessionId: networkClient.sessionId, isHost: true });
-      // 存储 sessionId 到 localStorage 供断线重连用
-      if (networkClient.sessionId) {
-        localStorage.setItem('twinum:online:roomId', roomId);
-        localStorage.setItem('twinum:online:sessionId', networkClient.sessionId);
-        localStorage.setItem('twinum:online:nickname', nickname);
-      }
+      localStorage.setItem('twinum:online:nickname', nickname);
       return shareUrl;
     } catch (err) {
       set({ phase: 'error', errorMessage: String(err) });
@@ -150,11 +149,7 @@ export const useOnlineStore = create<OnlineStore>()((set, get) => ({
       await networkClient.joinRoom(roomId, { nickname });
       attachNetworkListeners(set, get);
       set({ phase: 'lobby', roomId, sessionId: networkClient.sessionId, isHost: false });
-      if (networkClient.sessionId) {
-        localStorage.setItem('twinum:online:roomId', roomId);
-        localStorage.setItem('twinum:online:sessionId', networkClient.sessionId);
-        localStorage.setItem('twinum:online:nickname', nickname);
-      }
+      localStorage.setItem('twinum:online:nickname', nickname);
     } catch (err) {
       set({ phase: 'error', errorMessage: String(err) });
       throw err;
@@ -185,7 +180,14 @@ export const useOnlineStore = create<OnlineStore>()((set, get) => ({
     try {
       await networkClient.reconnect();
       attachNetworkListeners(set, get);
-      set({ phase: 'playing', roomId: networkClient.roomId, sessionId: networkClient.sessionId });
+      const savedNickname = localStorage.getItem('twinum:online:nickname') ?? '';
+      const savedRoomId = localStorage.getItem('twinum_room_id');
+      set({
+        roomId: networkClient.roomId ?? savedRoomId,
+        sessionId: networkClient.sessionId,
+        myNickname: savedNickname,
+        // phase 不在此处设为 playing，等待服务端 fullStateSync 回包后自动切换
+      });
     } catch (err) {
       set({ phase: 'error', errorMessage: String(err) });
       throw err;
@@ -194,14 +196,13 @@ export const useOnlineStore = create<OnlineStore>()((set, get) => ({
 
   leaveRoom: async () => {
     await networkClient.leave();
-    localStorage.removeItem('twinum:online:roomId');
-    localStorage.removeItem('twinum:online:sessionId');
     localStorage.removeItem('twinum:online:nickname');
     set({ ...initialState });
   },
 
   setNickname: (name) => set({ myNickname: name }),
   setTargetPlayerCount: (count) => set({ targetPlayerCount: count }),
+  setTargetRounds: (rounds) => set({ targetRounds: rounds }),
 }));
 
 /** 绑定 networkClient 的事件到 store */
@@ -214,7 +215,7 @@ function attachNetworkListeners(
   });
 
   networkClient.on('lobbyUpdate', (snapshot) => {
-    set({ lobby: snapshot });
+    set({ lobby: snapshot, targetRounds: snapshot.targetRounds });
   });
 
   networkClient.on('privateHand', ({ hand }) => {

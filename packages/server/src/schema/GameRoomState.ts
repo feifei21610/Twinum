@@ -50,6 +50,7 @@ export class GameRoomState extends Schema {
 
   // 游戏配置
   @type('number') targetPlayerCount: number = 4; // 房主设置的目标人数（2-5）
+  @type('number') targetRounds: number = 4;       // 房主设置的总轮数
 
   // 游戏中状态（从权威 GameState 同步过来的公共信息）
   @type('number') currentPlayerIndex: number = 0;

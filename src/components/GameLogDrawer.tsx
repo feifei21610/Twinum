@@ -29,7 +29,7 @@ const actionKindLabel: Record<Action['type'], { label: string; colorClass: strin
   SHOW: { label: 'Show', colorClass: 'bg-gradient-neon text-white' },
   SCOUT: { label: 'Scout', colorClass: 'bg-surface-600 text-ink-50' },
   SCOUT_AND_SHOW: { label: 'S&S', colorClass: 'bg-neon-500/90 text-white' },
-  FLIP_HAND: { label: '翻面', colorClass: 'bg-warning/80 text-white' },
+  FLIP_HAND: { label: 'Flip', colorClass: 'bg-warning/80 text-white' },
 };
 
 export function GameLogDrawer({

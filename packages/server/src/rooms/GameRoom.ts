@@ -28,13 +28,13 @@ const BOT_THINK_DELAY_MS = 1200;      // Bot 思考延时（ms）
 interface JoinOptions {
   nickname?: string;
   targetPlayerCount?: number; // 仅房主创建时有效
+  targetRounds?: number;      // 仅房主创建时有效，自定义总轮数
 }
 
 interface PlayerSession {
   sessionId: string;
   playerIndex: number;
   nickname: string;
-  reconnectTimer?: ReturnType<typeof setTimeout>;
 }
 
 export class GameRoom extends Room<GameRoomState> {
@@ -64,6 +64,10 @@ export class GameRoom extends Room<GameRoomState> {
     const targetCount = options.targetPlayerCount ?? 4;
     this.state.targetPlayerCount = Math.max(3, Math.min(5, targetCount));
     this.maxClients = this.state.targetPlayerCount; // 按房间配置限制入场
+
+    // 房主设定总轮数（合法范围 1-10，默认 = playerCount）
+    const targetRounds = options.targetRounds ?? this.state.targetPlayerCount;
+    this.state.targetRounds = Math.max(1, Math.min(10, targetRounds));
 
     // 注册消息处理
     this.onMessage('action', (client, action: Action) => {
@@ -128,71 +132,60 @@ export class GameRoom extends Room<GameRoomState> {
     this.broadcast('lobbyUpdate', this.getLobbySnapshot());
   }
 
-  onLeave(client: Client, consented: boolean) {
+  async onLeave(client: Client, consented: boolean) {
     const session = this.sessions.get(client.sessionId);
     if (!session) return;
 
     console.log(`[GameRoom] roomId=${this.roomId} event=leave nickname=${session.nickname} consented=${consented}`);
 
-    if (this.state.roomPhase === 'lobby') {
-      // 大厅阶段直接移除
+    if (consented || this.state.roomPhase === 'lobby') {
+      // 主动离开或大厅阶段：直接移除
       this.removePlayer(client.sessionId);
       return;
     }
 
-    // 游戏中：标记断线，启动 60 秒重连计时
+    // 游戏中且非主动断线：标记断线，通知所有人
     const pub = this.state.players.get(client.sessionId);
     if (pub) {
       pub.connected = false;
       pub.reconnectDeadline = Date.now() + RECONNECT_TIMEOUT_MS;
     }
 
-    session.reconnectTimer = setTimeout(() => {
-      // 超时：Bot 接管
-      this.takeoverWithBot(session.playerIndex);
-    }, RECONNECT_TIMEOUT_MS);
-
     this.broadcast('playerDisconnected', {
       playerIndex: session.playerIndex,
       nickname: session.nickname,
       reconnectDeadline: Date.now() + RECONNECT_TIMEOUT_MS,
     });
-  }
 
-  async onReconnect(client: Client, _options: JoinOptions) {
-    const session = Array.from(this.sessions.values()).find(
-      (s) => s.nickname === (_options.nickname ?? ''),
-    );
-    if (!session) return;
+    try {
+      // Colyseus allowReconnection：等同一 sessionId 带 reconnectionToken 回来（最多 60 秒）
+      const reconnectedClient = await this.allowReconnection(client, 60);
 
-    // 取消 Bot 接管计时
-    if (session.reconnectTimer) {
-      clearTimeout(session.reconnectTimer);
-      session.reconnectTimer = undefined;
+      // 重连成功：sessionId 保持不变，恢复状态
+      const restoredPub = this.state.players.get(reconnectedClient.sessionId);
+      if (restoredPub) {
+        restoredPub.connected = true;
+        restoredPub.reconnectDeadline = 0;
+      }
+
+      // 补发完整状态（含私有手牌）
+      const restoredSession = this.sessions.get(reconnectedClient.sessionId);
+      if (this.authorityState && restoredSession) {
+        reconnectedClient.send(
+          'fullStateSync',
+          this.buildClientState(this.authorityState, restoredSession.playerIndex),
+        );
+      }
+
+      this.broadcast('playerReconnected', {
+        playerIndex: session.playerIndex,
+        nickname: session.nickname,
+      });
+    } catch {
+      // 60 秒内未重连：Bot 接管
+      console.log(`[GameRoom] roomId=${this.roomId} reconnect timeout for ${session.nickname}, bot takeover`);
+      this.takeoverWithBot(session.playerIndex);
     }
-
-    // 更新 sessionId
-    this.sessions.delete(session.sessionId);
-    session.sessionId = client.sessionId;
-    this.sessions.set(client.sessionId, session);
-    this.playerIndexToSession.set(session.playerIndex, client.sessionId);
-
-    // 更新公共状态
-    const pub = this.state.players.get(session.sessionId);
-    if (pub) {
-      pub.connected = true;
-      pub.reconnectDeadline = 0;
-    }
-
-    // 把当前权威状态发给重连的客户端
-    if (this.authorityState) {
-      client.send('fullStateSync', this.buildClientState(this.authorityState, session.playerIndex));
-    }
-
-    this.broadcast('playerReconnected', {
-      playerIndex: session.playerIndex,
-      nickname: session.nickname,
-    });
   }
 
   onDispose() {
@@ -218,6 +211,7 @@ export class GameRoom extends Room<GameRoomState> {
       playerCount: totalCount,
       botConfigs,
       allBots: false,
+      totalRounds: this.state.targetRounds,
     });
 
     // 把"真人"类型替换为 remote
@@ -530,6 +524,7 @@ export class GameRoom extends Room<GameRoomState> {
         nickname: s.nickname,
       })),
       targetPlayerCount: this.state.targetPlayerCount,
+      targetRounds: this.state.targetRounds,
       hostSessionId: this.state.hostSessionId,
     };
   }

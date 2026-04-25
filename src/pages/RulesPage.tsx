@@ -10,32 +10,40 @@ import type { Card as CardType } from '../types/game';
 
 // ── 数据 ──────────────────────────────────────────────────────
 
-const rule1Groups: { cards: CardType[]; caption: string }[] = [
+const rule1Groups: { cards: CardType[]; caption: string; gtLabel?: string }[] = [
   {
     cards: [
       { id: 'r1-1', top: 1, bottom: 8, flipped: false },
       { id: 'r1-2', top: 2, bottom: 7, flipped: false },
       { id: 'r1-3', top: 3, bottom: 6, flipped: false },
     ],
-    caption: '3 张连续 · 张数最多',
+    caption: '3 连',
+    gtLabel: '张数优先',
   },
   {
     cards: [
       { id: 'r2-1', top: 4, bottom: 5, flipped: false },
       { id: 'r2-2', top: 4, bottom: 3, flipped: false },
     ],
-    caption: '2 张同数字 · 强于连续',
+    caption: '2 同',
+    gtLabel: '同＞连',
   },
   {
     cards: [
       { id: 'r3-1', top: 5, bottom: 4, flipped: false },
       { id: 'r3-2', top: 6, bottom: 3, flipped: false },
     ],
-    caption: '2 张连续',
+    caption: '2 连',
+    gtLabel: '',
   },
   {
     cards: [{ id: 'r4-1', top: 7, bottom: 2, flipped: false }],
-    caption: '单张 · 最弱',
+    caption: '单张 7',
+    gtLabel: '比数字',
+  },
+  {
+    cards: [{ id: 'r5-1', top: 6, bottom: 3, flipped: false }],
+    caption: '单张 6',
   },
 ];
 
@@ -79,104 +87,69 @@ function QuickRulesCard(): JSX.Element {
             transition={{ duration: 0.22, ease: 'easeOut' }}
             className="overflow-hidden"
           >
-            <div className="space-y-5 border-t border-white/5 px-4 pb-5 pt-4">
+            <div className="space-y-4 border-t border-white/5 px-4 pb-5 pt-3">
 
-              {/* 0. 游戏概览（一行信息胶囊） */}
-              <div>
-                <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-400">
-                  🎮 游戏概览
-                </p>
-                <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs leading-relaxed text-ink-200">
-                  <b className="text-ink-50">4 人</b> 游戏 ·
-                  每人 <b className="text-ink-50">11 张</b> 手牌 ·
-                  共 <b className="text-ink-50">4 轮</b> ·
-                  <b className="text-ink-50">累计总分最高者获胜</b>
+              {/* 0. 卡片速览 */}
+              <div className="flex items-center gap-2.5">
+                <div className="shrink-0">
+                  <Card card={demoCard} size="xxs" disabled />
                 </div>
+                <span className="text-[11px] leading-relaxed text-ink-300">
+                  <b className="text-ink-100">牌分为正反两面，大数字</b> ＝ 当前朝上的面，<b className="text-cyan-300">只有这个数字参与出牌和比较</b>，玩家轮流出牌进行多轮游戏，最后总积分最高者获胜。
+                </span>
               </div>
 
-              {/* 1. 卡片速览 */}
-              <div>
-                <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-400">
-                  🃏 卡片速览
-                </p>
-                <div className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3">
-                  <div className="shrink-0">
-                    <Card card={demoCard} size="md" disabled />
-                  </div>
-                  <ul className="flex-1 space-y-1 text-[11px] leading-relaxed text-ink-300">
-                    <li>
-                      <b className="text-ink-100">中央大数字</b> ＝ 当前朝上的面，
-                      <b className="text-cyan-300">只有这个数字参与出牌和比较</b>。
-                    </li>
-                    <li>
-                      <b className="text-ink-100">右上角小数字</b> ＝ 背面数字，始终可见，供你规划用。
-                    </li>
-                    <li>
-                      <b className="text-ink-100">翻面后</b>两数互换（颜色从青变琥珀），朝上的数字随之改变。
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* 2. 玩法流程 */}
+              {/* 1. 玩法流程 */}
               <div>
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">
                   🔀 玩法流程
                 </p>
 
-                {/* 2-① 操作说明 */}
-                <p className="mb-1.5 text-xs font-semibold text-ink-200">① 操作说明（每回合三选一）</p>
-
-                {/* 关键前置：手牌顺序固定 */}
-                <p className="mb-2 rounded-md border border-amber-400/30 bg-amber-400/5 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-200/90">
-                  ⚠ <b>手牌顺序固定</b>，不能自由排序——这是核心机制。
+                {/* ① 操作说明 */}
+                <p className="mb-2 text-xs font-bold text-ink-100">
+                  ① 操作说明
+                  <span className="ml-1.5 font-normal text-ink-400">（每回合必须选一个执行，不能跳过）</span>
                 </p>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
 
                   {/* Show */}
                   <div>
-                    <div className="flex gap-2.5">
-                      <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
-                        Show（出牌）
+                    <div className="flex items-start gap-2.5">
+                      <span className="inline-flex w-14 shrink-0 items-center justify-center self-start rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
+                        Show
                       </span>
-                      <span className="text-xs leading-relaxed text-ink-300">
-                        从手牌中选<b className="text-ink-100">位置相邻</b>的 1 张或多张牌（不能跳过中间的牌），
-                        多张牌须为「<b className="text-ink-100">同数字</b>」（如 3-3-3）或「<b className="text-ink-100">连续数字</b>」
-                        <span className="text-[11px] text-ink-400">（如 3-4-5 或 5-4-3，不可乱序）</span>，
-                        并能<b className="text-ink-100">盖过场上牌组</b>。场上无牌时可任意出。
-                        <br />
-                        <span className="text-[11px] text-ink-400">
-                          打出的牌叠到<b className="text-ink-300">场上牌组</b>，仍<b className="text-cyan-300">标记为你的</b>——对手 Scout 走时你得分（见计分）。
-                        </span>
-                      </span>
+                      <ul className="space-y-0.5 text-[11px] leading-relaxed text-ink-300">
+                        <li><b className="text-ink-100">出牌</b>：选1张或<b className="text-ink-100">位置相邻</b>的多张牌，大过场上牌组</li>
+                        <li className="pl-3 text-amber-200/90">· ⚠ <b>手牌顺序固定</b>，不能自由排序（核心机制）</li>
+                        <li className="pl-3 text-ink-400">· 出多张须同数字或连续：<b className="text-green-400">33✓</b>、<b className="text-green-400">543✓</b>、<b className="text-red-400">354✗</b></li>
+                        <li className="pl-3 text-ink-400">· 场上无牌可任意出</li>
+                      </ul>
                     </div>
                     {/* 牌组强度子项 */}
-                    <div className="ml-2 mt-2 rounded-lg bg-white/5 px-3 py-2">
-                      <p className="mb-1 text-[11px] font-semibold text-ink-300">
-                        牌型强度比较顺序：
-                      </p>
-                      <ul className="space-y-0.5 text-xs leading-relaxed text-ink-400">
-                        <li><span className="mr-1 font-bold text-ink-200">①</span> 张数多的更强（3 张 &gt; 2 张 &gt; 1 张）；</li>
-                        <li><span className="mr-1 font-bold text-ink-200">②</span> 相同张数时，<b className="text-ink-300">同数字型</b> 强于 <b className="text-ink-300">连续数字型</b>；</li>
-                        <li><span className="mr-1 font-bold text-ink-200">③</span> 张数、类型相同时，<b className="text-ink-300">按朝上数字大小</b>比较。</li>
-                        <li className="mt-1 text-[11px] text-ink-500">※ 强度比较只看<b className="text-ink-400">当前朝上的数字</b>，与背面无关。</li>
-                      </ul>
-                      <div className="mt-2 flex items-end justify-center gap-1">
+                    <div className="ml-2 mt-2 rounded-lg bg-white/5 px-1.5 py-2">
+                      <div className="flex origin-center items-start justify-center gap-0.5 scale-[0.82]">
                         {rule1Groups.map((grp, i) => (
-                          <div key={i} className="flex items-end gap-1">
-                            <div className="flex flex-col items-center gap-0.5">
-                              <div className="flex items-end gap-0.5">
+                          <div key={i} className="flex items-start gap-0.5 shrink-0">
+                            <div className="flex flex-col items-center gap-0.5 shrink-0">
+                              <div className="flex h-10 items-center gap-0.5">
                                 {grp.cards.map((c) => (
                                   <Card key={c.id} card={c} size="xxs" disabled />
                                 ))}
                               </div>
-                              <span className="text-[10px] leading-tight text-ink-500 text-center">
+                              <span className="text-[10px] leading-tight text-ink-500 text-center whitespace-nowrap">
                                 {grp.caption}
                               </span>
                             </div>
                             {i < rule1Groups.length - 1 && (
-                              <span className="shrink-0 pb-4 text-sm font-bold text-ink-300">›</span>
+                              <div className="shrink-0 flex flex-col items-center px-0.5">
+                                <div className="flex h-10 items-center">
+                                  <span className="text-base font-bold text-ink-200 leading-none">&gt;</span>
+                                </div>
+                                {grp.gtLabel ? (
+                                  <span className="mt-0.5 text-[9px] text-ink-400 leading-tight whitespace-nowrap">{grp.gtLabel}</span>
+                                ) : null}
+                              </div>
                             )}
                           </div>
                         ))}
@@ -185,86 +158,62 @@ function QuickRulesCard(): JSX.Element {
                   </div>
 
                   {/* Scout */}
-                  <div className="flex gap-2.5">
-                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
-                      Scout（抽牌）
+                  <div className="flex items-start gap-2.5">
+                    <span className="inline-flex w-14 shrink-0 items-center justify-center self-start rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
+                      Scout
                     </span>
-                    <span className="text-xs leading-relaxed text-ink-300">
-                      从<b className="text-ink-100">场上牌组</b>（即上一位 Show 出的那组牌）的<b className="text-ink-100">最左或最右</b>抽 1 张，
-                      可选择是否<b className="text-ink-100">翻面</b>后再插入自己手牌任意位置。
-                      <span className="text-[11px] text-ink-400">
-                        （被抽走的牌所属的<b className="text-ink-300">原主人得 1 分</b>。）
-                      </span>
-                    </span>
+                    <ul className="space-y-0.5 text-[11px] leading-relaxed text-ink-300">
+                      <li><b className="text-ink-100">抽牌</b>：不出牌，从<b className="text-ink-100">场上牌组</b>的<b className="text-ink-100">最左或最右</b>抽 1 张入自己手牌任意位置</li>
+                      <li className="pl-3 text-ink-400">· 可选择是否<b className="text-ink-100">翻面</b>后插入</li>
+                    </ul>
                   </div>
 
                   {/* S&S */}
-                  <div className="flex gap-2.5">
-                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
+                  <div className="flex items-start gap-2.5">
+                    <span className="inline-flex w-14 shrink-0 items-center justify-center self-start rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
                       S&amp;S
                     </span>
-                    <span className="text-xs leading-relaxed text-ink-300">
-                      <b className="text-ink-100">Scout &amp; Show（先抽后出）</b>：先 Scout 一张插入手牌，紧接着立即 Show 一次。
-                      只需盖过 Scout 之后的场上牌组即可。<b className="text-ink-100">每轮限 1 次</b>。
+                    <ul className="space-y-0.5 text-[11px] leading-relaxed text-ink-300">
+                      <li><b className="text-ink-100">先抽后出</b>：先 Scout 一张插入手牌，紧接 Show</li>
+                      <li className="pl-3 text-ink-400">· 大小只需盖过 Scout 之后的场上牌组</li>
+                      <li className="pl-3 text-ink-400">· <b className="text-ink-100">每轮限使用 1 次</b></li>
+                    </ul>
+                  </div>
+
+                  {/* Flip */}
+                  <div className="flex items-start gap-2.5">
+                    <span className="inline-flex w-14 shrink-0 items-center justify-center self-start rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
+                      Flip
                     </span>
+                    <ul className="space-y-0.5 text-[11px] leading-relaxed text-ink-300">
+                      <li><b className="text-ink-100">整副翻转</b>：每轮第一次出牌前，可将<b className="text-ink-100">整副手牌翻面</b>（正反互换）</li>
+                      <li className="pl-3 text-ink-400">· <b className="text-ink-100">每轮限使用 1 次</b></li>
+                    </ul>
                   </div>
 
                 </div>
 
-                {/* 2-② 计分规则 */}
-                <p className="mb-1.5 mt-4 text-xs font-semibold text-ink-200">② 计分规则</p>
-                <div className="space-y-2.5">
-                  <div className="flex gap-2.5">
-                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
-                      + 吃牌
-                    </span>
-                    <span className="text-xs leading-relaxed text-ink-300">
-                      Show 之后，场上被盖过的那组牌收到你的得分堆。每张 = 1 分。
-                    </span>
-                  </div>
-                  <div className="flex gap-2.5">
-                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
-                      + 被抽
-                    </span>
-                    <span className="text-xs leading-relaxed text-ink-300">
-                      你 Show 出的牌每被 Scout 走 1 张，你 +1 分。
-                    </span>
-                  </div>
-                  <div className="flex gap-2.5">
-                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
-                      − 剩牌
-                    </span>
-                    <span className="text-xs leading-relaxed text-ink-300">
-                      本轮结束时，手里每剩 1 张牌扣 1 分。
-                    </span>
-                  </div>
-                </div>
-                <p className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-center text-xs font-bold text-ink-100">
-                  本轮得分 = 吃牌数 + 被抽数 − 剩牌数
+                {/* ② 计分规则 */}
+                <p className="mb-2 mt-5 text-xs font-bold text-ink-100">
+                  ② 计分规则
+                  <span className="ml-1.5 font-normal text-ink-400">本轮得分 = 吃牌数 + 被抽数 − 剩牌数</span>
                 </p>
+                <ul className="space-y-0.5 text-[11px] leading-relaxed text-ink-300">
+                  <li>· <b className="text-green-400">+ 吃牌</b>：Show 之后，场上的牌组张数 = 你的得分，每张 +1 分</li>
+                  <li>· <b className="text-green-400">+ 被抽</b>：你 Show 出的牌每被 Scout 走 1 张，你 +1 分</li>
+                  <li>· <b className="text-red-400">− 剩牌</b>：本轮结束时，手里每剩 1 张牌扣 1 分</li>
+                </ul>
 
-                {/* 2-③ 一轮何时结束 */}
-                <p className="mb-1.5 mt-4 text-xs font-semibold text-ink-200">③ 一轮何时结束</p>
-                <p className="text-xs leading-relaxed text-ink-300">
-                  满足任一条件即结束：<b className="text-ink-100">①</b> 有人出完所有手牌；
-                  <b className="text-ink-100">②</b> 你 Show 后，其他三人都只 Scout，一圈回到你时，本轮结束。
-                  <span className="text-[11px] text-ink-400">
-                    （条件 ② 下，<b className="text-ink-300">Show 者免扣剩牌分</b>，其余 3 人仍按剩牌数扣分。）
-                  </span>
+                {/* ③ 结束条件 */}
+                <p className="mb-2 mt-5 text-xs font-bold text-ink-100">
+                  ③ 一轮结束条件
+                  <span className="ml-1.5 font-normal text-ink-400">（任一满足）</span>
                 </p>
-              </div>
-
-              {/* 3. 整副翻转 */}
-              <div>
-                <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-ink-400">
-                  🔁 整副翻转
-                </p>
-                <p className="text-xs leading-relaxed text-ink-300">
-                  每轮开始、尚未行动前，可将<b className="text-ink-100">整副手牌翻面</b>（正反互换）。<b className="text-ink-100">每轮限 1 次</b>。
-                  <span className="text-[11px] text-ink-400">
-                    （开局大数多时可翻一次博小连。）
-                  </span>
-                </p>
+                <ul className="space-y-0.5 text-[11px] leading-relaxed text-ink-300">
+                  <li>· 有人出完所有手牌</li>
+                  <li>· 你 Show 后，其他三人都只 Scout，一圈回到你时本轮结束</li>
+                  <li className="pl-3 text-ink-400">· 条件 2 下，<b className="text-ink-300">Show 玩家免扣剩牌分</b>，其余玩家仍按剩牌数扣分</li>
+                </ul>
               </div>
 
             </div>

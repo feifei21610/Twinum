@@ -16,8 +16,8 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? 'ws://localhost:2567';
 export function OnlineLobbyPage(): JSX.Element {
   const {
     phase, errorMessage, myPlayerIndex, myNickname, roomId, isHost,
-    lobby, targetPlayerCount,
-    init, createRoom, joinRoom, startGame, leaveRoom, setNickname, setTargetPlayerCount,
+    lobby, targetPlayerCount, targetRounds,
+    init, createRoom, joinRoom, startGame, leaveRoom, setNickname, setTargetPlayerCount, setTargetRounds,
   } = useOnlineStore();
 
   const goto = useGameStore((s) => s.goto);
@@ -32,9 +32,21 @@ export function OnlineLobbyPage(): JSX.Element {
   // 初始化网络客户端
   useEffect(() => {
     init(SERVER_URL);
-    // 检查 URL 有没有 room 参数（分享链接进来）
     const params = new URLSearchParams(window.location.search);
     const urlRoomId = params.get('room');
+
+    // 先看本地有没有未结束的重连 token
+    const savedToken = localStorage.getItem('twinum_reconnection_token');
+    const savedRoomId = localStorage.getItem('twinum_room_id');
+    if (savedToken && savedRoomId && (!urlRoomId || urlRoomId === savedRoomId)) {
+      // 静默尝试重连，失败就清 token 回大厅
+      useOnlineStore.getState().reconnect().catch(() => {
+        localStorage.removeItem('twinum_reconnection_token');
+        localStorage.removeItem('twinum_room_id');
+      });
+      return;
+    }
+
     if (urlRoomId) {
       setRoomIdInput(urlRoomId);
       setTab('join');
@@ -53,7 +65,7 @@ export function OnlineLobbyPage(): JSX.Element {
     setNickname(name);
     setIsLoading(true);
     try {
-      const url = await createRoom(name, targetPlayerCount);
+      const url = await createRoom(name, targetPlayerCount, targetRounds);
       setShareUrl(url);
     } catch {
       // errorMessage 会在 store 里被设置
@@ -97,6 +109,7 @@ export function OnlineLobbyPage(): JSX.Element {
       isHost={isHost}
       myPlayerIndex={myPlayerIndex ?? 0}
       targetPlayerCount={targetPlayerCount}
+      targetRounds={targetRounds}
       onStart={startGame}
       onBack={handleBack}
       copied={copied}
@@ -167,7 +180,11 @@ export function OnlineLobbyPage(): JSX.Element {
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setTargetPlayerCount(n)}
+                    onClick={() => {
+                      setTargetPlayerCount(n);
+                      // 人数改变时，若当前轮数等于旧人数（默认值），同步更新为新人数
+                      if (targetRounds === targetPlayerCount) setTargetRounds(n);
+                    }}
                     className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
                       targetPlayerCount === n
                         ? 'border-neon-500/60 bg-neon-500/15 text-neon-300'
@@ -175,6 +192,30 @@ export function OnlineLobbyPage(): JSX.Element {
                     }`}
                   >
                     {n}人
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 轮数选择 */}
+            <div>
+              <label className="mb-1.5 block text-xs text-ink-400">
+                对局轮数
+                <span className="ml-1.5 text-ink-500">（默认 {targetPlayerCount} 人 {targetPlayerCount} 轮）</span>
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setTargetRounds(n)}
+                    className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
+                      targetRounds === n
+                        ? 'border-neon-500/60 bg-neon-500/15 text-neon-300'
+                        : 'border-white/10 bg-white/5 text-ink-400 hover:text-ink-200'
+                    }`}
+                  >
+                    {n}轮
                   </button>
                 ))}
               </div>
@@ -255,6 +296,7 @@ interface WaitingRoomProps {
   isHost: boolean;
   myPlayerIndex: number;
   targetPlayerCount: number;
+  targetRounds: number;
   onStart: () => void;
   onBack: () => void;
   copied: boolean;
@@ -262,7 +304,7 @@ interface WaitingRoomProps {
 }
 
 function WaitingRoom({
-  roomId, shareUrl, lobby, isHost, myPlayerIndex, targetPlayerCount,
+  roomId, shareUrl, lobby, isHost, myPlayerIndex, targetPlayerCount, targetRounds,
   onStart, onBack, copied, onCopy,
 }: WaitingRoomProps): JSX.Element {
   const currentCount = lobby?.players.length ?? 0;
@@ -281,7 +323,7 @@ function WaitingRoom({
         </button>
         <div className="text-center">
           <h1 className="text-sm font-bold text-ink-100">等待玩家加入</h1>
-          <p className="text-[10px] text-ink-500 font-mono">{roomId}</p>
+          <p className="text-[10px] text-ink-500 font-mono">{roomId} · {targetRounds} 轮</p>
         </div>
         <div className="w-9" />
       </div>
