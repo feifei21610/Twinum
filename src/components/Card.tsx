@@ -22,7 +22,7 @@ export interface CardProps {
   /** 点击回调 */
   onClick?: () => void;
   /** 尺寸：sm（手牌）/ md（场上）/ lg（开始页主视觉） */
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
   /** 是否背面朝上（对手手牌用） */
   faceDown?: boolean;
   /** 额外 className */
@@ -30,6 +30,7 @@ export interface CardProps {
 }
 
 const sizeClasses: Record<NonNullable<CardProps['size']>, string> = {
+  xxs: 'w-7 h-10 text-sm',
   xs: 'w-10 h-14 text-lg',
   sm: 'w-14 h-20 text-2xl',
   md: 'w-16 h-24 text-3xl',
@@ -37,6 +38,7 @@ const sizeClasses: Record<NonNullable<CardProps['size']>, string> = {
 };
 
 const subNumberSize: Record<NonNullable<CardProps['size']>, string> = {
+  xxs: 'text-[8px]',
   xs: 'text-[10px]',
   sm: 'text-xs',
   md: 'text-sm',

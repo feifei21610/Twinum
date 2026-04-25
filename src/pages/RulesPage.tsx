@@ -111,7 +111,7 @@ function QuickRulesCard(): JSX.Element {
                   {/* Show */}
                   <div>
                     <div className="flex gap-2.5">
-                      <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
+                      <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
                         Show（出牌）
                       </span>
                       <span className="text-xs leading-relaxed text-ink-300">
@@ -133,7 +133,7 @@ function QuickRulesCard(): JSX.Element {
                           <div key={i} className="flex items-center gap-1">
                             <div className="flex items-end gap-0.5">
                               {grp.cards.map((c) => (
-                                <Card key={c.id} card={c} size="xs" disabled />
+                                <Card key={c.id} card={c} size="xxs" disabled />
                               ))}
                             </div>
                             {i < rule1Groups.length - 1 && (
@@ -147,7 +147,7 @@ function QuickRulesCard(): JSX.Element {
 
                   {/* Scout */}
                   <div className="flex gap-2.5">
-                    <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
+                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
                       Scout（抽牌）
                     </span>
                     <span className="text-xs leading-relaxed text-ink-300">
@@ -157,7 +157,7 @@ function QuickRulesCard(): JSX.Element {
 
                   {/* S&S */}
                   <div className="flex gap-2.5">
-                    <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
+                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2.5 py-0.5 font-mono text-[11px] text-ink-200">
                       S&S（先抽后出）
                     </span>
                     <span className="text-xs leading-relaxed text-ink-300">
@@ -171,7 +171,7 @@ function QuickRulesCard(): JSX.Element {
                 <p className="mb-1.5 mt-4 text-xs font-semibold text-ink-200">② 边玩边计分（伴随操作实时发生）</p>
                 <div className="space-y-2.5">
                   <div className="flex gap-2.5">
-                    <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
+                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
                       + 收牌
                     </span>
                     <span className="text-xs leading-relaxed text-ink-300">
@@ -179,7 +179,7 @@ function QuickRulesCard(): JSX.Element {
                     </span>
                   </div>
                   <div className="flex gap-2.5">
-                    <span className="mt-0.5 shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
+                    <span className="inline-flex items-center shrink-0 rounded-full border border-white/20 px-2 py-0.5 font-mono text-[11px] text-ink-200">
                       + 被抽
                     </span>
                     <span className="text-xs leading-relaxed text-ink-300">
